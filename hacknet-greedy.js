@@ -1,8 +1,15 @@
 /**
  * Greedy hacknet purchasing algorithm. Polls indefinitely until the script is killed.
+ * This script will attempt to purchase the cheapest possible upgrade (new node, level, 
+ * RAM, core) and will fully deplenish your surplus money as and when the cheapest 
+ * upgrade can be purchased. If you are trying to build a surplus you should kill the 
+ * script and let it build up.
  */
 
-const INTERVAL = 10_000;
+const LEVEL_INCREMENT = 1;
+const RAM_INCREMENT = 1;
+const CORE_INCREMENT = 1;
+const INTERVAL = 12_000;
 
 function createLogger(ns) {
     return function log(msg, level = 'info') {
@@ -47,9 +54,9 @@ export async function main(ns) {
         for (let index = 0; index < ns.hacknet.numNodes(); index++) {
             const costs = {
                 node: ns.hacknet.getPurchaseNodeCost(),
-                level: ns.hacknet.getLevelUpgradeCost(index, 10),
-                ram: ns.hacknet.getRamUpgradeCost(index, 2),
-                core: ns.hacknet.getCoreUpgradeCost(index, 1),
+                level: ns.hacknet.getLevelUpgradeCost(index, LEVEL_INCREMENT),
+                ram: ns.hacknet.getRamUpgradeCost(index, RAM_INCREMENT),
+                core: ns.hacknet.getCoreUpgradeCost(index, CORE_INCREMENT),
             };
 
             for (const [name, cost] of Object.entries(costs)) {
@@ -74,17 +81,17 @@ export async function main(ns) {
                     }
                     break;
                 case 'level':
-                    if (ns.hacknet.upgradeLevel(cheapest.index, 10)) {
+                    if (ns.hacknet.upgradeLevel(cheapest.index, LEVEL_INCREMENT)) {
                         log(`Successfully upgraded hacknet-node-${cheapest.index} level`, 'success');
                     }
                     break;
                 case 'ram':
-                    if (ns.hacknet.upgradeRam(cheapest.index, 2)) {
+                    if (ns.hacknet.upgradeRam(cheapest.index, RAM_INCREMENT)) {
                         log(`Successfully upgraded hacknet-node-${cheapest.index} RAM`, 'success');
                     }
                     break;
                 case 'core':
-                    if (ns.hacknet.upgradeCore(cheapest.index, 1)) {
+                    if (ns.hacknet.upgradeCore(cheapest.index, CORE_INCREMENT)) {
                         log(`Successfully upgraded hacknet-node-${cheapest.index} cores`, 'success');
                     }
                     break;
