@@ -6,20 +6,20 @@
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	const serverName = ns.args[0];
+	const [node, threads] = ns.args;
 	while (true) {
-		const serverSecurityLevel = ns.getServerSecurityLevel(serverName);
-		const serverMaxMoney = ns.getServerMaxMoney(serverName);
-		const serverMoneyAvail = ns.getServerMoneyAvailable(serverName);
+		const serverSecurityLevel = ns.getServerSecurityLevel(node);
+		const serverMaxMoney = ns.getServerMaxMoney(node);
+		const serverMoneyAvail = ns.getServerMoneyAvailable(node);
 
 		if (serverSecurityLevel > 10) {
-			await ns.weaken(serverName, 1);
+			await ns.weaken(node, { threads });
 		}
 
-		if (serverMoneyAvail / serverMaxMoney < 0.5) {
-			await ns.grow(serverName, 1);
+		if ((serverMoneyAvail / serverMaxMoney) < 0.5) {
+			await ns.grow(node, { threads });
 		}
 
-		await ns.hack(serverName, Infinity);
+		await ns.hack(node, { threads });
 	}
 }

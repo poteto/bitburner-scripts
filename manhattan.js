@@ -86,7 +86,7 @@ export async function main(ns) {
 		const scriptCost = Math.round(ns.getScriptRam(SELF_OWN_SCRIPT) / 0.5) * 0.5;
 		const threads = Math.max(Math.floor(availableRam / scriptCost), 1);
 
-		if (ns.exec(SELF_OWN_SCRIPT, node, threads, node) === 0) {
+		if (ns.exec(SELF_OWN_SCRIPT, node, threads, node, threads) === 0) {
 			ns.toast(`Failed to execute ${SELF_OWN_SCRIPT} on: ${node}`, 'error');
 		} else {
 			ns.toast(`Executing ${SELF_OWN_SCRIPT} on: ${node}`, 'success');
