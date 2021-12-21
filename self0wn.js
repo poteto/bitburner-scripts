@@ -8,15 +8,11 @@
 export async function main(ns) {
 	const [node, threads] = ns.args;
 	while (true) {
-		const serverSecurityLevel = ns.getServerSecurityLevel(node);
-		const serverMaxMoney = ns.getServerMaxMoney(node);
-		const serverMoneyAvail = ns.getServerMoneyAvailable(node);
-
-		if (serverSecurityLevel > 10) {
+		if (ns.getServerSecurityLevel(node) > ns.getServerMinSecurityLevel(node)) {
 			await ns.weaken(node, { threads });
 		}
 
-		if ((serverMoneyAvail / serverMaxMoney) < 0.5) {
+		if (ns.getServerMoneyAvailable(node) < ns.getServerMaxMoney(node)) {
 			await ns.grow(node, { threads });
 		}
 

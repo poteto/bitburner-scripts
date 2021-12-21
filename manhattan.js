@@ -46,7 +46,12 @@ export async function main(ns) {
 		if (isHome(node)) {
 			return false;
 		}
+		const user = ns.getPlayer();
 		const server = ns.getServer(node);
+
+		if (user.hacking < server.requiredHackingSkill) {
+			return false;
+		}
 
 		// if (server.backdoorInstalled === false) {
 		// 	ns.installBackdoor(node);
@@ -83,8 +88,7 @@ export async function main(ns) {
 		const serverUsedRam = ns.getServerUsedRam(node);
 		const serverMaxRam = ns.getServerMaxRam(node);
 		const availableRam = serverMaxRam - serverUsedRam;
-		const scriptCost = Math.round(ns.getScriptRam(SELF_OWN_SCRIPT) / 0.5) * 0.5;
-		const threads = Math.max(Math.floor(availableRam / scriptCost), 1);
+		const threads = Math.floor(availableRam / ns.getScriptRam(SELF_OWN_SCRIPT));
 
 		if (ns.exec(SELF_OWN_SCRIPT, node, threads, node, threads) === 0) {
 			ns.toast(`Failed to execute ${SELF_OWN_SCRIPT} on: ${node}`, 'error');
