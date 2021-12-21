@@ -53,6 +53,7 @@ export async function main(ns) {
         }
 
         if (numNodes === 0) {
+            log(`Successfully purchased hacknet-node-0`, 'success');
             ns.hacknet.purchaseNode();
         }
 
