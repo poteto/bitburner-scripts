@@ -6,7 +6,7 @@
  * script and let it build up.
  */
 
-const LEVEL_INCREMENT = 1;
+const LEVEL_INCREMENT = 20;
 const RAM_INCREMENT = 1;
 const CORE_INCREMENT = 1;
 const INTERVAL = 12_000;

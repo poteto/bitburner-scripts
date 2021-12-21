@@ -13,7 +13,7 @@ function createLogger(ns) {
 			case 'info':
 				ns.print(`[INFO] ${msg}`);
 				break;
-			case 'warn':
+			case 'warning':
 				ns.print(`[WARN] ${msg}`);
 				break;
 			case 'error':
@@ -50,6 +50,7 @@ export async function main(ns) {
 		const server = ns.getServer(node);
 
 		if (user.hacking < server.requiredHackingSkill) {
+			log(`Expected hacking level ${server.requiredHackingSkill} for ${node}, got: ${user.hacking}`, 'warning');
 			return false;
 		}
 
