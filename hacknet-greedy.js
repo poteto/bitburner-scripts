@@ -45,13 +45,18 @@ export async function main(ns) {
     );
 
     while (true) {
+        const numNodes = ns.hacknet.numNodes();
         let cheapest = {
             cost: Infinity,
             name: null,
             index: null,
         }
 
-        for (let index = 0; index < ns.hacknet.numNodes(); index++) {
+        if (numNodes === 0) {
+            ns.hacknet.purchaseNode();
+        }
+
+        for (let index = 0; index < numNodes; index++) {
             const costs = {
                 node: ns.hacknet.getPurchaseNodeCost(),
                 level: ns.hacknet.getLevelUpgradeCost(index, LEVEL_INCREMENT),
