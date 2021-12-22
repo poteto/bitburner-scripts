@@ -27,12 +27,16 @@ export async function main(ns) {
     const firstMachineRam = Math.pow(2, getExponent(ns.getScriptRam(AGENT_SCRIPT)));
 
     while (ns.getPurchasedServers().length < fleetLimit) {
+        const nextServerName = `${FLEET_PREFIX}-${ns.getPurchasedServers().length}`;
         const cost = ns.getPurchasedServerCost(firstMachineRam);
+        log(`Attempting to purchase ${nextServerName}`);
         while (ns.getServerMoneyAvailable(ROOT_NODE) < cost) {
             insufficientFunds(cost);
             await ns.sleep(INTERVAL);
         }
-        ns.purchaseServer(`${FLEET_PREFIX}-${ns.getPurchasedServers().length}`, firstMachineRam);
+        if (ns.purchaseServer(nextServerName, firstMachineRam) === nextServerName) {
+            log(`Succesfully purchased ${nextServerName}`, nextServerName);
+        }
     }
 
     while (true) {
@@ -68,7 +72,7 @@ export async function main(ns) {
                 throw new Error('Should never get here');
             }
             if (ns.purchaseServer(server, nextRam) === server) {
-                log(`Upgraded ${server} to ${nextRam}GB RAM`, 'success');
+                log(`Successfully upgraded ${server} to ${nextRam}GB RAM`, 'success');
             }
         }
     }
