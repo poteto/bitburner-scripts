@@ -20,6 +20,7 @@ export async function main(ns) {
 	ns.disableLog('killall');
 	ns.disableLog('scp');
 	ns.disableLog('exec');
+	ns.disableLog('rm');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
@@ -113,7 +114,6 @@ export async function main(ns) {
 	log(`Nuked: ${[...nuked]}`, 'success');
 	await ns.write('nuked.txt', [...nuked], 'w');
 
-	const purchasedServers = ns.getPurchasedServers();
 	const determineBestHackTarget = () => {
 		let bestHackEfficiency = -Infinity;
 		let bestHackTarget = null;
@@ -134,7 +134,7 @@ export async function main(ns) {
 
 	const [target, efficiency] = determineBestHackTarget();
 	log(`Found best hack target: ${target} with efficiency of ${formatMoney(efficiency)}`, 'success');
-	const fleet = [...nuked, ...purchasedServers];
+	const fleet = [...nuked, ...ns.getPurchasedServers()];
 
 	for (const node of fleet) {
 		await pointAgentAtTarget(node, target);
