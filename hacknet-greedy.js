@@ -1,3 +1,5 @@
+import createLogger from './create-logger.js';
+
 /**
  * Greedy hacknet purchasing algorithm. Polls indefinitely until the script is killed.
  * This script will attempt to purchase the cheapest possible upgrade (new node, level, 
@@ -10,27 +12,6 @@ const LEVEL_INCREMENT = 20;
 const RAM_INCREMENT = 1;
 const CORE_INCREMENT = 1;
 const INTERVAL = 12_000;
-
-function createLogger(ns) {
-    return function log(msg, level = 'info') {
-        switch (level) {
-            case 'info':
-                ns.print(`[INFO] ${msg}`);
-                break;
-            case 'warning':
-                ns.print(`[WARN] ${msg}`);
-                break;
-            case 'error':
-                ns.print(`[ERR ] ${msg}`);
-                break;
-            case 'success':
-                ns.print(`[ OK ] ${msg}`);
-                break;
-            default:
-                throw new Error('Unhandled log level');
-        }
-    }
-}
 
 /** @param {NS} ns **/
 export async function main(ns) {

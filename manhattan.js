@@ -1,32 +1,14 @@
+import createLogger from './create-logger.js';
+
 /**
  * Recursively traverses reachable servers beginning from the current host, opening ports as 
  * needed and nuking if possible. If the server was successfully nuked, we copy over the 
- * SELF_OWN_SCRIPT which makes use of the nuked server to hack itself.
+ * AGENT_SCRIPT which makes use of the nuked server to hack the most efficient server.
  */
 
 const ROOT_NODE = 'home';
-const AGENT_SCRIPT = 'agent-allinone.js';
-
-function createLogger(ns) {
-	return function log(msg, level = 'info') {
-		switch (level) {
-			case 'info':
-				ns.print(`[INFO] ${msg}`);
-				break;
-			case 'warning':
-				ns.print(`[WARN] ${msg}`);
-				break;
-			case 'error':
-				ns.print(`[ERR ] ${msg}`);
-				break;
-			case 'success':
-				ns.print(`[ OK ] ${msg}`);
-				break;
-			default:
-				throw new Error('Unhandled log level');
-		}
-	}
-}
+const FLEET_PREFIX = 'fleet-node';
+export const AGENT_SCRIPT = 'agent-allinone.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -37,9 +19,11 @@ export async function main(ns) {
 	ns.disableLog('getServerMaxRam');
 	ns.disableLog('killall');
 	ns.disableLog('scp');
+	ns.disableLog('exec');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
+	const formatMoney = x => ns.nFormat(x, '($0.00a)');
 
 	const isHome = node => node === ROOT_NODE;
 	const tryNuke = (node) => {
@@ -78,7 +62,10 @@ export async function main(ns) {
 			ns.sqlinject(node);
 		}
 
-		ns.nuke(node);
+		if (server.openPortCount === ns.getServerNumPortsRequired(node)) {
+			ns.nuke(node);
+		}
+
 		return ns.hasRootAccess(node);
 	}
 	const pointAgentAtTarget = async (node, target) => {
@@ -89,7 +76,7 @@ export async function main(ns) {
 		const serverUsedRam = ns.getServerUsedRam(node);
 		const serverMaxRam = ns.getServerMaxRam(node);
 		const availableRam = serverMaxRam - serverUsedRam;
-		const threads = Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT));
+		const threads = Math.max(Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT)), 1);
 		const scriptArgs = [target, threads];
 
 		if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
@@ -101,14 +88,14 @@ export async function main(ns) {
 
 	const visited = new Set();
 	const nuked = new Set();
-	const traverse = async (node, depth = 0) => {
-		const scannedNodes = ns.scan(node).filter(nextNode => nextNode !== ROOT_NODE);
+	const traverse = (node, depth = 0) => {
+		const scannedNodes = ns.scan(node).filter(nextNode => nextNode !== ROOT_NODE && !nextNode.startsWith(FLEET_PREFIX));
 		if (scannedNodes.length) {
 			log(`Found: ${scannedNodes} at depth: ${depth}`);
 		}
 		for (const nextNode of scannedNodes) {
 			if (visited.has(nextNode)) {
-				log(`Already traversed, skipping: ${nextNode}`, 'warn');
+				log(`Already traversed, skipping: ${nextNode}`, 'warning');
 				continue;
 			}
 			log(`Traversing: ${nextNode}`);
@@ -127,23 +114,29 @@ export async function main(ns) {
 	await ns.write('nuked.txt', [...nuked], 'w');
 
 	const purchasedServers = ns.getPurchasedServers();
-	const determineBestHackTarget = (nuked) => {
+	const determineBestHackTarget = () => {
 		let bestHackEfficiency = -Infinity;
 		let bestHackTarget = null;
 		for (const nukedNode of nuked) {
+			const node = ns.getServer(nukedNode);
 			const hackEfficiency = node.moneyMax * ns.hackAnalyze(node.hostname) / ns.getHackTime(node.hostname);
+			log(`${node.hostname} has effiency of: ${formatMoney(hackEfficiency)}`);
 			if (hackEfficiency > bestHackEfficiency) {
 				bestHackEfficiency = hackEfficiency;
 				bestHackTarget = node.hostname;
 			}
 		}
-		return bestHackTarget;
+		if (bestHackTarget == null) {
+			throw new Error(`Couldn't find the best hack target`);
+		}
+		return [bestHackTarget, bestHackEfficiency];
 	}
 
-	const bestHackTarget = determineBestHackTarget();
+	const [target, efficiency] = determineBestHackTarget();
+	log(`Found best hack target: ${target} with efficiency of ${formatMoney(efficiency)}`, 'success');
 	const fleet = [...nuked, ...purchasedServers];
 
 	for (const node of fleet) {
-		await pointAgentAtTarget(node, bestHackTarget);
+		await pointAgentAtTarget(node, target);
 	}
 }

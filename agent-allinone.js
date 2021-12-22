@@ -1,19 +1,52 @@
-/**
- * Extremely basic self hacking script. 
- * 
- * TODO make this better
- */
+export default function createLogger(ns) {
+	return function log(msg, level = 'info') {
+		switch (level) {
+			case 'info':
+				ns.print(`[INFO] ${msg}`);
+				break;
+			case 'warning':
+				ns.print(`[WARN] ${msg}`);
+				break;
+			case 'error':
+				ns.print(`[ERR ] ${msg}`);
+				break;
+			case 'success':
+				ns.print(`[ OK ] ${msg}`);
+				break;
+			default:
+				throw new Error('Unhandled log level');
+		}
+	}
+}
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	ns.disableLog('getServerSecurityLevel');
+	ns.disableLog('getServerMinSecurityLevel');
+	ns.disableLog('getServerMoneyAvailable');
+	ns.disableLog('getServerMaxMoney');
+
+	const log = createLogger(ns);
+	const formatMoney = x => ns.nFormat(x, '($0.00a)');
+	const formatSecurity = x => ns.nFormat(x, '0.00');
+
 	const [node, threads] = ns.args;
+	const nodeStats = {
+		get currentMoney() { return ns.getServerMoneyAvailable(node) },
+		get maxMoney() { return ns.getServerMaxMoney(node) },
+		get currentSecurity() { return ns.getServerSecurityLevel(node) },
+		get minSecurity() { return ns.getServerMinSecurityLevel(node) }
+	}
+
 	while (true) {
-		if (ns.getServerSecurityLevel(node) > ns.getServerMinSecurityLevel(node)) {
-			await ns.weaken(node, { threads });
+		while ((nodeStats.currentMoney / nodeStats.maxMoney) < 0.8) {
+			log(`Money   : ${formatMoney(nodeStats.currentMoney)} (Max: ${formatMoney(nodeStats.maxMoney)})`);
+			await ns.grow(node, { threads });
 		}
 
-		if (ns.getServerMoneyAvailable(node) < ns.getServerMaxMoney(node)) {
-			await ns.grow(node, { threads });
+		while (nodeStats.currentSecurity > nodeStats.minSecurity) {
+			log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
+			await ns.weaken(node, { threads });
 		}
 
 		await ns.hack(node, { threads });
