@@ -63,7 +63,7 @@ export async function main(ns) {
 			ns.sqlinject(node);
 		}
 
-		if (server.openPortCount === ns.getServerNumPortsRequired(node)) {
+		if (server.openPortCount >= ns.getServerNumPortsRequired(node)) {
 			ns.nuke(node);
 		}
 
