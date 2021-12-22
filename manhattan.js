@@ -5,7 +5,7 @@
  */
 
 const ROOT_NODE = 'home';
-const SELF_OWN_SCRIPT = 'self0wn.js';
+const AGENT_SCRIPT = 'agent-allinone.js';
 
 function createLogger(ns) {
 	return function log(msg, level = 'info') {
@@ -81,20 +81,21 @@ export async function main(ns) {
 		ns.nuke(node);
 		return ns.hasRootAccess(node);
 	}
-	const self0wn = async node => {
+	const pointAgentAtTarget = async (node, target) => {
 		ns.killall(node);
-		ns.rm(SELF_OWN_SCRIPT, node);
-		await ns.scp(SELF_OWN_SCRIPT, node);
+		ns.rm(AGENT_SCRIPT, node);
+		await ns.scp(AGENT_SCRIPT, node);
 
 		const serverUsedRam = ns.getServerUsedRam(node);
 		const serverMaxRam = ns.getServerMaxRam(node);
 		const availableRam = serverMaxRam - serverUsedRam;
-		const threads = Math.floor(availableRam / ns.getScriptRam(SELF_OWN_SCRIPT));
+		const threads = Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT));
+		const scriptArgs = [target, threads];
 
-		if (ns.exec(SELF_OWN_SCRIPT, node, threads, node, threads) === 0) {
-			ns.toast(`Failed to execute ${SELF_OWN_SCRIPT} on: ${node}`, 'error');
+		if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
+			ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
 		} else {
-			ns.toast(`Executing ${SELF_OWN_SCRIPT} on: ${node}`, 'success');
+			ns.toast(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
 		}
 	}
 
@@ -125,7 +126,24 @@ export async function main(ns) {
 	log(`Nuked: ${[...nuked]}`, 'success');
 	await ns.write('nuked.txt', [...nuked], 'w');
 
-	for (const nukedNode of nuked) {
-		await self0wn(nukedNode);
+	const purchasedServers = ns.getPurchasedServers();
+	const determineBestHackTarget = (nuked) => {
+		let bestHackEfficiency = -Infinity;
+		let bestHackTarget = null;
+		for (const nukedNode of nuked) {
+			const hackEfficiency = node.moneyMax * ns.hackAnalyze(node.hostname) / ns.getHackTime(node.hostname);
+			if (hackEfficiency > bestHackEfficiency) {
+				bestHackEfficiency = hackEfficiency;
+				bestHackTarget = node.hostname;
+			}
+		}
+		return bestHackTarget;
+	}
+
+	const bestHackTarget = determineBestHackTarget();
+	const fleet = [...nuked, ...purchasedServers];
+
+	for (const node of fleet) {
+		await pointAgentAtTarget(node, bestHackTarget);
 	}
 }
