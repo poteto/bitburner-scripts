@@ -39,16 +39,14 @@ export async function main(ns) {
 	}
 
 	while (true) {
-		while ((nodeStats.currentMoney / nodeStats.maxMoney) < 0.8) {
-			log(`Money   : ${formatMoney(nodeStats.currentMoney)} (Max: ${formatMoney(nodeStats.maxMoney)})`);
+		while (nodeStats.currentMoney < nodeStats.maxMoney) {
 			await ns.grow(node, { threads });
+			log(`Money   : ${formatMoney(nodeStats.currentMoney)} (Max: ${formatMoney(nodeStats.maxMoney)})`);
+			while (nodeStats.currentSecurity > nodeStats.minSecurity) {
+				await ns.weaken(node, { threads });
+				log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
+			}
 		}
-
-		while (nodeStats.currentSecurity > nodeStats.minSecurity) {
-			log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
-			await ns.weaken(node, { threads });
-		}
-
 		await ns.hack(node, { threads });
 	}
 }
