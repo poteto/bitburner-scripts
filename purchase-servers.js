@@ -1,5 +1,9 @@
 import createLogger from './create-logger.js';
-import { AGENT_SCRIPT } from './manhattan.js';
+import {
+    AGENT_GROW_SCRIPT,
+    AGENT_HACK_SCRIPT,
+    AGENT_WEAK_SCRIPT
+} from './manhattan.js';
 
 const FLEET_PREFIX = 'fleet-node';
 const ROOT_NODE = 'home';
@@ -24,7 +28,12 @@ export async function main(ns) {
 
     const maxFleetRam = ns.getPurchasedServerMaxRam();
     const fleetLimit = ns.getPurchasedServerLimit();
-    const firstMachineRam = Math.pow(2, getExponent(ns.getScriptRam(AGENT_SCRIPT)));
+    const biggestScript = Math.max(
+        ns.getScriptRam(AGENT_GROW_SCRIPT),
+        ns.getScriptRam(AGENT_HACK_SCRIPT),
+        ns.getScriptRam(AGENT_WEAK_SCRIPT)
+    );
+    const firstMachineRam = Math.pow(2, getExponent(biggestScript));
 
     while (ns.getPurchasedServers().length < fleetLimit) {
         const nextServerName = `${FLEET_PREFIX}-${ns.getPurchasedServers().length}`;
@@ -35,7 +44,7 @@ export async function main(ns) {
             await ns.sleep(INTERVAL);
         }
         if (ns.purchaseServer(nextServerName, firstMachineRam) === nextServerName) {
-            log(`Succesfully purchased ${nextServerName}`, nextServerName);
+            log(`Succesfully purchased ${nextServerName}`, 'success');
         }
     }
 

@@ -8,7 +8,10 @@ import createLogger from './create-logger.js';
 
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
-export const AGENT_SCRIPT = 'agent-allinone.js';
+const INTERVAL = 12_000;
+export const AGENT_GROW_SCRIPT = 'agent-grow.js';
+export const AGENT_HACK_SCRIPT = 'agent-hack.js';
+export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -21,91 +24,110 @@ export async function main(ns) {
 	ns.disableLog('scp');
 	ns.disableLog('exec');
 	ns.disableLog('rm');
+	ns.disableLog('getServerSecurityLevel');
+	ns.disableLog('getServerMinSecurityLevel');
+	ns.disableLog('getServerMoneyAvailable');
+	ns.disableLog('getServerMaxMoney');
+	ns.disableLog('sleep');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
 	const formatMoney = x => ns.nFormat(x, '($0.00a)');
+	const formatInt = x => ns.nFormat(x, '0,0');
+	const format2Decimals = x => ns.nFormat(x, '0,0.00');
+	const isHome = hostname => hostname === ROOT_NODE;
+	const isOwnedFleet = hostname => hostname.startsWith(FLEET_PREFIX);
+	const isOwned = hostname => isHome(hostname) || isOwnedFleet(hostname);
 
-	const isHome = node => node === ROOT_NODE;
-	const tryNuke = (node) => {
-		if (isHome(node)) {
+	const getGrowThreads = (hostname) => {
+		const moneyAvail = ns.getServerMoneyAvailable(target.hostname);
+		const moneyMax = ns.getServerMaxMoney(target.hostname);
+		const growRate = moneyMax / moneyAvail;
+		if (Math.abs(growRate) === Infinity) {
+			return 1;
+		}
+		return Math.ceil(ns.growthAnalyze(hostname, moneyMax / moneyAvail));
+	}
+	const getHackThreads = (hostname) => {
+		const moneyAvail = ns.getServerMoneyAvailable(hostname);
+		const moneyMax = ns.getServerMaxMoney(hostname);
+		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)));
+	}
+	const getWeakThreads = (hostname) => Math.ceil((ns.getServerSecurityLevel(hostname) - ns.getServerMinSecurityLevel(hostname)) / 0.05);
+
+	const tryNuke = (hostname) => {
+		if (isOwned(hostname)) {
 			return false;
 		}
 		const user = ns.getPlayer();
-		const server = ns.getServer(node);
+		const server = ns.getServer(hostname);
 
 		if (user.hacking < server.requiredHackingSkill) {
-			log(`Expected hacking level ${server.requiredHackingSkill} for ${node}, got: ${user.hacking}`, 'warning');
+			log(`Expected hacking level ${server.requiredHackingSkill} for ${hostname}, got: ${user.hacking}`, 'warning');
 			return false;
 		}
 
-		// if (server.backdoorInstalled === false) {
-		// 	ns.installBackdoor(node);
-		// }
-
 		if (server.sshPortOpen === false && ns.fileExists('BruteSSH.exe')) {
-			ns.brutessh(node);
+			ns.brutessh(hostname);
 		}
 
 		if (server.ftpPortOpen === false && ns.fileExists('FTPCrack.exe')) {
-			ns.ftpcrack(node);
+			ns.ftpcrack(hostname);
 		}
 
 		if (server.smtpPortOpen === false && ns.fileExists('relaySMTP.exe')) {
-			ns.relaysmtp(node);
+			ns.relaysmtp(hostname);
 		}
 
 		if (server.httpPortOpen === false && ns.fileExists('HTTPWorm.exe')) {
-			ns.httpworm(node);
+			ns.httpworm(hostname);
 		}
 
 		if (server.sqlPortOpen === false && ns.fileExists('SQLInject.exe')) {
-			ns.sqlinject(node);
+			ns.sqlinject(hostname);
 		}
 
-		if (server.openPortCount >= ns.getServerNumPortsRequired(node)) {
-			ns.nuke(node);
+		if (server.openPortCount >= ns.getServerNumPortsRequired(hostname)) {
+			ns.nuke(hostname);
 		}
 
-		return ns.hasRootAccess(node);
+		if (server.backdoorInstalled === false) {
+			log(`${server.hostname} can be backdoored`, 'warning');
+			// ns.installBackdoor(hostname);
+		}
+
+		return ns.hasRootAccess(hostname);
 	}
-	const pointAgentAtTarget = async (node, target) => {
-		ns.killall(node);
-		ns.rm(AGENT_SCRIPT, node);
-		await ns.scp(AGENT_SCRIPT, node);
-
-		const serverUsedRam = ns.getServerUsedRam(node);
-		const serverMaxRam = ns.getServerMaxRam(node);
-		const availableRam = serverMaxRam - serverUsedRam;
-		const threads = Math.max(Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT)), 1);
-		const scriptArgs = [target, threads];
-
-		if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
-			ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
-		} else {
-			ns.toast(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
+	const installAgents = async (controlledServers) => {
+		const payload = [AGENT_GROW_SCRIPT, AGENT_HACK_SCRIPT, AGENT_WEAK_SCRIPT];
+		for (const server of controlledServers) {
+			ns.killall(server.hostname);
+			for (const script of payload) {
+				ns.rm(script, server.hostname);
+				await ns.scp(script, server.hostname);
+			}
 		}
 	}
 
 	const visited = new Set();
 	const nuked = new Set();
-	const traverse = (node, depth = 0) => {
-		const scannedNodes = ns.scan(node).filter(nextNode => nextNode !== ROOT_NODE && !nextNode.startsWith(FLEET_PREFIX));
-		if (scannedNodes.length) {
-			log(`Found: ${scannedNodes} at depth: ${depth}`);
+	const traverse = (hostname, depth = 0) => {
+		const scannedHostnames = ns.scan(hostname).filter(nextHostname => isOwned(nextHostname) === false);
+		if (scannedHostnames.length) {
+			log(`Found: ${scannedHostnames} at depth: ${depth}`);
 		}
-		for (const nextNode of scannedNodes) {
-			if (visited.has(nextNode)) {
-				log(`Already traversed, skipping: ${nextNode}`, 'warning');
+		for (const nextHostname of scannedHostnames) {
+			if (visited.has(nextHostname)) {
+				log(`Already traversed, skipping: ${nextHostname}`, 'warning');
 				continue;
 			}
-			log(`Traversing: ${nextNode}`);
-			visited.add(nextNode);
-			if (tryNuke(nextNode) === true) {
-				nuked.add(nextNode);
-				traverse(nextNode, depth + 1);
+			log(`Traversing: ${nextHostname}`);
+			visited.add(nextHostname);
+			if (tryNuke(nextHostname) === true) {
+				nuked.add(nextHostname);
+				traverse(nextHostname, depth + 1);
 			} else {
-				log(`Couldn't nuke: ${nextNode}`);
+				log(`Couldn't nuke: ${nextHostname}`);
 			}
 		}
 	}
@@ -115,28 +137,100 @@ export async function main(ns) {
 	await ns.write('nuked.txt', [...nuked], 'w');
 
 	const determineBestHackTarget = () => {
-		let bestHackEfficiency = -Infinity;
-		let bestHackTarget = null;
+		const bestTarget = {
+			efficiency: -Infinity,
+			hostname: '',
+		};
 		for (const nukedNode of nuked) {
-			const node = ns.getServer(nukedNode);
-			const hackEfficiency = node.moneyMax * ns.hackAnalyze(node.hostname) / ns.getHackTime(node.hostname);
-			log(`${node.hostname} has effiency of: ${formatMoney(hackEfficiency)}`);
-			if (hackEfficiency > bestHackEfficiency) {
-				bestHackEfficiency = hackEfficiency;
-				bestHackTarget = node.hostname;
+			const server = ns.getServer(nukedNode);
+			const timeSpent = ns.getHackTime(server.hostname) + ns.getWeakenTime(server.hostname) + ns.getGrowTime(server.hostname);
+			const hackEfficiency = server.moneyMax / timeSpent;
+			log(`${server.hostname} has effiency of: ${formatMoney(hackEfficiency)}`);
+			if (hackEfficiency > bestTarget.efficiency) {
+				bestTarget.efficiency = hackEfficiency;
+				bestTarget.hostname = server.hostname;
 			}
 		}
-		if (bestHackTarget == null) {
+		if (bestTarget.hostname === '') {
 			throw new Error(`Couldn't find the best hack target`);
 		}
-		return [bestHackTarget, bestHackEfficiency];
+		return bestTarget;
 	}
 
-	const [target, efficiency] = determineBestHackTarget();
-	log(`Found best hack target: ${target} with efficiency of ${formatMoney(efficiency)}`, 'success');
-	const fleet = [...nuked, ...ns.getPurchasedServers()];
+	const target = determineBestHackTarget();
+	log(`Found best hack target: ${target.hostname} with efficiency of ${formatMoney(target.efficiency)}`, 'success');
 
-	for (const node of fleet) {
-		await pointAgentAtTarget(node, target);
+	const execScript = (source, destination, script, threadsNeeded) => {
+		const scriptCost = ns.getScriptRam(script);
+		const availRam = ns.getServerMaxRam(source.hostname) - ns.getServerUsedRam(source.hostname);
+		const threadsAvail = Math.floor(availRam / scriptCost);
+		const threads = Math.max(threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail, 1);
+		const scriptArgs = [destination.hostname, threads];
+		if (ns.exec(script, source.hostname, threads, ...scriptArgs) !== 0) {
+			return threadsNeeded - threads;
+		} else {
+			return null;
+		}
+	}
+	const dispatch = async (controlledServers, destination, script, threadsRemaining) => {
+		let weakensRemaining = 0;
+		const reduceSecurityToMinimum = async () => {
+			weakensRemaining = getWeakThreads(destination.hostname);
+			while (weakensRemaining > 0) {
+				log(`Weakening ${destination.hostname} with ${weakensRemaining} threads`);
+				for (const source of controlledServers) {
+					if (weakensRemaining < 1) {
+						break;
+					}
+					const newWeakensRemaining = execScript(source, destination, AGENT_WEAK_SCRIPT, weakensRemaining);
+					if (newWeakensRemaining == null) {
+						continue;
+					}
+					weakensRemaining = newWeakensRemaining;
+				}
+				await ns.sleep(INTERVAL);
+			}
+		};
+		while (threadsRemaining > 0) {
+			await reduceSecurityToMinimum();
+			if (script === AGENT_GROW_SCRIPT) {
+				log(`Growing ${destination.hostname} with ${threadsRemaining} threads`);
+			}
+			if (script === AGENT_HACK_SCRIPT) {
+				log(`Hacking ${destination.hostname} with ${threadsRemaining} threads`);
+			}
+			for (const source of controlledServers) {
+				if (threadsRemaining < 1) {
+					break;
+				}
+				const newThreadsRemaining = execScript(source, destination, script, threadsRemaining);
+				if (newThreadsRemaining == null) {
+					continue;
+				}
+				threadsRemaining = newThreadsRemaining;
+			}
+			await ns.sleep(INTERVAL);
+		}
+	};
+
+	const report = (target) => {
+		log(`--- REPORT for ${target.hostname} ---`);
+		log(`moneyAvail  : ${formatMoney(ns.getServerMoneyAvailable(target.hostname))}`);
+		log(`moneyMax    : ${formatMoney(ns.getServerMaxMoney(target.hostname))}`);
+		log(`currSecurity: ${format2Decimals(ns.getServerSecurityLevel(target.hostname))}`);
+		log(`minSecurity : ${format2Decimals(ns.getServerMinSecurityLevel(target.hostname))}`);
+		log(`growThreads : ${formatInt(getGrowThreads(target.hostname))}`);
+		log(`weakThreads : ${formatInt(getWeakThreads(target.hostname))}`);
+		log(`hackThreads : ${formatInt(getHackThreads(target.hostname))}`);
+	}
+
+	const controlledServers = [...nuked, ...ns.getPurchasedServers()].map(hostname => ns.getServer(hostname));
+	await installAgents(controlledServers);
+
+	while (true) {
+		report(target);
+		await dispatch(controlledServers, target, AGENT_GROW_SCRIPT, getGrowThreads(target.hostname));
+		await dispatch(controlledServers, target, AGENT_HACK_SCRIPT, getHackThreads(target.hostname));
+		await ns.sleep(INTERVAL);
 	}
 }
