@@ -21,6 +21,7 @@ export async function main(ns) {
 	ns.disableLog('scp');
 	ns.disableLog('exec');
 	ns.disableLog('rm');
+	ns.disableLog('getServerSecurityLevel');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
@@ -114,29 +115,40 @@ export async function main(ns) {
 	log(`Nuked: ${[...nuked]}`, 'success');
 	await ns.write('nuked.txt', [...nuked], 'w');
 
-	const determineBestHackTarget = () => {
-		let bestHackEfficiency = -Infinity;
-		let bestHackTarget = null;
+	const listOfTargetsSorted = () => {
+		const sortedTargets = [];
 		for (const nukedNode of nuked) {
 			const node = ns.getServer(nukedNode);
-			const hackEfficiency = node.moneyMax * ns.hackAnalyze(node.hostname) / ns.getHackTime(node.hostname);
-			log(`${node.hostname} has effiency of: ${formatMoney(hackEfficiency)}`);
-			if (hackEfficiency > bestHackEfficiency) {
-				bestHackEfficiency = hackEfficiency;
-				bestHackTarget = node.hostname;
-			}
+			sortedTargets.push(node);
 		}
-		if (bestHackTarget == null) {
-			throw new Error(`Couldn't find the best hack target`);
-		}
-		return [bestHackTarget, bestHackEfficiency];
+		return sortedTargets.sort((a, b) => (a.moneyMax > b.moneyMax) ? 1 : -1)
 	}
 
-	const [target, efficiency] = determineBestHackTarget();
-	log(`Found best hack target: ${target} with efficiency of ${formatMoney(efficiency)}`, 'success');
-	const fleet = [...nuked, ...ns.getPurchasedServers()];
+	const arraySortedTargets = listOfTargetsSorted();
+	const arraySortedTargets2 = [];
+	let useFirst = true;
+	const fleet = [...nuked, ...ns.getPurchasedServers()].sort((a, b) => (a.serverMaxRam > b.serverMaxRam) ? 1 : -1);
+
+	log(`List of targets length : ${arraySortedTargets.length}`, 'success');
 
 	for (const node of fleet) {
-		await pointAgentAtTarget(node, target);
+		if (useFirst) {
+			const hostTemp = arraySortedTargets.pop();
+			await pointAgentAtTarget(node, String(hostTemp.hostname));
+			arraySortedTargets2.push(hostTemp);
+		}
+		else {
+			const hostTemp = arraySortedTargets2.shift();
+			await pointAgentAtTarget(node, String(hostTemp.hostname));
+			arraySortedTargets.push(hostTemp);
+		}
+
+		if (arraySortedTargets.length == 0) {
+			useFirst = false;
+		}
+
+		if (arraySortedTargets2.length == 0) {
+			useFirst = true;
+		}
 	}
 }

@@ -40,6 +40,10 @@ export async function main(ns) {
 
 	while (true) {
 		while (nodeStats.currentMoney < nodeStats.maxMoney) {
+			while (nodeStats.currentSecurity > nodeStats.minSecurity) {
+				await ns.weaken(node, { threads });
+				log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
+			}
 			await ns.grow(node, { threads });
 			log(`Money   : ${formatMoney(nodeStats.currentMoney)} (Max: ${formatMoney(nodeStats.maxMoney)})`);
 			while (nodeStats.currentSecurity > nodeStats.minSecurity) {
