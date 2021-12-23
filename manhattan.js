@@ -173,9 +173,8 @@ export async function main(ns) {
 		}
 	}
 	const dispatch = async (controlledServers, destination, script, threadsRemaining) => {
-		let weakensRemaining = 0;
 		const reduceSecurityToMinimum = async () => {
-			weakensRemaining = getWeakThreads(destination.hostname);
+			let weakensRemaining = getWeakThreads(destination.hostname);
 			while (weakensRemaining > 0) {
 				log(`Weakening ${destination.hostname} with ${weakensRemaining} threads`);
 				for (const source of controlledServers) {
