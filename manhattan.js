@@ -139,23 +139,18 @@ export async function main(ns) {
 	}
 	const killScriptOnAllServers = (controlledServers, script) => {
 		for (const server of controlledServers) {
-			if (isHome(server.hostname)) {
-				continue;
-			}
 			for (const process of ns.ps(server.hostname)) {
-				if (process.filename !== script) {
-					continue;
+				if (process.filename === script) {
+					ns.kill(process.filename, server.hostname, ...process.args);
 				}
-				ns.kill(process.filename, server.hostname, ...process.args);
 			}
 		}
 	}
 	const killOtherScriptsOnHome = (home) => {
 		for (const process of ns.ps(home.hostname)) {
-			if (!AGENT_PAYLOAD.has(process.filename)) {
-				continue;
+			if (AGENT_PAYLOAD.has(process.filename)) {
+				ns.kill(process.filename, home.hostname, ...process.args);
 			}
-			ns.kill(process.filename, home.hostname, ...process.args);
 		}
 	}
 	const visited = new Set();
