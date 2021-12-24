@@ -139,8 +139,11 @@ export async function main(ns) {
 	}
 	const killScriptOnAllServers = (controlledServers, script) => {
 		for (const server of controlledServers) {
+			if (isHome(server.hostname)) {
+				continue;
+			}
 			for (const process of ns.ps(server.hostname)) {
-				if (!process.filename === script) {
+				if (process.filename !== script) {
 					continue;
 				}
 				ns.kill(process.filename, server.hostname, ...process.args);
