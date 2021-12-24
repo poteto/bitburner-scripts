@@ -297,9 +297,12 @@ export async function main(ns) {
 	await installAgents(controlledServers);
 	killOtherScriptsOnHome(ns.getServer(ROOT_NODE));
 
-	// Note: This is an infinite loop cycling through the top 3 servers
+	// Note: This is an infinite loop cycling through the top n servers
 	for (const targetIndex of makeCycle(0, 2)) {
 		const target = sorted[targetIndex];
+		if (target == null) {
+			continue;
+		}
 		const moneyAvail = ns.getServerMoneyAvailable(target.hostname);
 		const moneyMax = ns.getServerMaxMoney(target.hostname);
 		const securityLevel = ns.getServerSecurityLevel(target.hostname);
@@ -308,6 +311,7 @@ export async function main(ns) {
 		if (minSecurityLevel < securityLevel) {
 			await dispatchWeak(controlledServers, target);
 			report(target);
+			continue;
 		}
 
 		if (moneyAvail < moneyMax) {
