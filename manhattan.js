@@ -138,10 +138,11 @@ export async function main(ns) {
 			}
 		}
 	}
-	const killScriptOnAllServers = (controlledServers, script) => {
+	const killScriptOnAllServers = (controlledServers, script, destination) => {
 		for (const server of controlledServers) {
 			for (const process of ns.ps(server.hostname)) {
 				if (process.filename === script) {
+					process.args.splice(0, 1, destination.hostname);
 					ns.kill(process.filename, server.hostname, ...process.args);
 				}
 			}
@@ -155,7 +156,7 @@ export async function main(ns) {
 		}
 	}
 	const visited = new Set();
-	const nukedTargets = new Set();
+	const nukedDestinations = new Set();
 	const traverse = (hostname, depth = 0) => {
 		const scannedHostnames = ns
 			.scan(hostname)
@@ -171,7 +172,7 @@ export async function main(ns) {
 			log(`Traversing: ${nextHostname}`);
 			visited.add(nextHostname);
 			if (tryNuke(nextHostname) === true) {
-				nukedTargets.add(nextHostname);
+				nukedDestinations.add(nextHostname);
 			} else {
 				log(`Couldn't nuke: ${nextHostname}`);
 			}
@@ -291,50 +292,50 @@ export async function main(ns) {
 	}
 
 	traverse(currentHost);
-	log(`Nuked: ${Array.from(nukedTargets)}`, 'success');
-	await ns.write('nuked.txt', Array.from(nukedTargets), 'w');
+	log(`Nuked: ${Array.from(nukedDestinations)}`, 'success');
+	await ns.write('nuked.txt', Array.from(nukedDestinations), 'w');
 
-	const sortedTargets = Array.from(nukedTargets)
+	const sortedDestinations = Array.from(nukedDestinations)
 		.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
 		.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
 		.map(hostname => ns.getServer(hostname));
-	const controlledServers = [ROOT_NODE, ...nukedTargets, ...ns.getPurchasedServers()]
+	const controlledServers = [ROOT_NODE, ...nukedDestinations, ...ns.getPurchasedServers()]
 		.map(hostname => ns.getServer(hostname))
 		.sort((a, b) => b.maxRam - a.maxRam);
 	await installAgents(controlledServers);
 	killOtherScriptsOnHome(ns.getServer(ROOT_NODE));
 
 	// Note: This is an infinite loop cycling through the top n servers
-	for (const targetIndex of makeCycle(0, sortedTargets.length - 1)) {
-		const target = sortedTargets[targetIndex];
-		if (target == null) {
+	for (const destinationIdx of makeCycle(0, sortedDestinations.length - 1)) {
+		const destination = sortedDestinations[destinationIdx];
+		if (destination == null) {
 			continue;
 		}
-		report(target);
-		const moneyAvail = ns.getServerMoneyAvailable(target.hostname);
-		const moneyMax = ns.getServerMaxMoney(target.hostname);
-		const securityLevel = ns.getServerSecurityLevel(target.hostname);
-		const minSecurityLevel = ns.getServerMinSecurityLevel(target.hostname);
+		report(destination);
+		const moneyAvail = ns.getServerMoneyAvailable(destination.hostname);
+		const moneyMax = ns.getServerMaxMoney(destination.hostname);
+		const securityLevel = ns.getServerSecurityLevel(destination.hostname);
+		const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
 
 		if (minSecurityLevel < securityLevel) {
-			await dispatchWeak(controlledServers, target);
-			report(target);
+			await dispatchWeak(controlledServers, destination);
+			report(destination);
 			continue;
 		}
 
 		if (minSecurityLevel === securityLevel) {
-			killScriptOnAllServers(controlledServers, AGENT_WEAK_SCRIPT);
+			killScriptOnAllServers(controlledServers, destination, AGENT_WEAK_SCRIPT);
 		}
 
 		if (moneyAvail < moneyMax) {
-			await dispatchGrow(controlledServers, target);
-			report(target);
+			await dispatchGrow(controlledServers, destination);
+			report(destination);
 		}
 
 		if (moneyAvail === moneyMax) {
-			killScriptOnAllServers(controlledServers, AGENT_GROW_SCRIPT);
-			await dispatchHack(controlledServers, target);
-			report(target);
+			killScriptOnAllServers(controlledServers, destination, AGENT_GROW_SCRIPT);
+			await dispatchHack(controlledServers, destination);
+			report(destination);
 		}
 
 		await ns.sleep(INTERVAL);
