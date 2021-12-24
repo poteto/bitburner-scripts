@@ -32,6 +32,7 @@ export async function main(ns) {
 	ns.disableLog('scan');
 	ns.disableLog('getServerUsedRam');
 	ns.disableLog('getServerMaxRam');
+	ns.disableLog('kill');
 	ns.disableLog('killall');
 	ns.disableLog('scp');
 	ns.disableLog('exec');
