@@ -288,7 +288,7 @@ export async function main(ns) {
 		.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
 		.map(hostname => ns.getServer(hostname));
 	log(`Top 3 servers in order:`);
-	for (let ii = 0; ii < 2; ii++) {
+	for (let ii = 0; ii < 3; ii++) {
 		const server = sorted[ii];
 		log(`${server.hostname}: ${formatMoney(efficiencyFor(server.hostname))}`, 'info');
 	}
