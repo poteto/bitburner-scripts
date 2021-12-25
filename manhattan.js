@@ -43,6 +43,9 @@ export async function main(ns) {
 	ns.disableLog('getServerMaxMoney');
 	ns.disableLog('sleep');
 
+	const visited = new Set();
+	const nukedDestinations = new Set();
+
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
 	const formatMoney = x => ns.nFormat(x, '($0.00a)');
@@ -57,7 +60,7 @@ export async function main(ns) {
 		const moneyMax = ns.getServerMaxMoney(hostname);
 		const growRate = moneyMax / moneyAvail;
 		if (Math.abs(growRate) === Infinity) {
-			return 1;
+			return 10_000;
 		}
 		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 5);
 	}
@@ -124,8 +127,8 @@ export async function main(ns) {
 
 		return ns.hasRootAccess(hostname);
 	}
-	const installAgents = async (controlledServers) => {
-		for (const server of controlledServers) {
+	const installAgents = async () => {
+		for (const server of getControlledServers(nukedDestinations)) {
 			if (isHome(server.hostname)) {
 				continue;
 			}
@@ -136,8 +139,8 @@ export async function main(ns) {
 			}
 		}
 	}
-	const killScriptOnAllServers = (controlledServers, script, destination) => {
-		for (const server of controlledServers) {
+	const killScriptOnAllServers = (script, destination) => {
+		for (const server of getControlledServers(nukedDestinations)) {
 			for (const process of ns.ps(server.hostname)) {
 				if (process.filename === script) {
 					process.args.splice(0, 1, destination.hostname);
@@ -153,8 +156,6 @@ export async function main(ns) {
 			}
 		}
 	}
-	const visited = new Set();
-	const nukedDestinations = new Set();
 	const traverse = (hostname, depth = 0) => {
 		const scannedHostnames = ns
 			.scan(hostname)
@@ -181,7 +182,6 @@ export async function main(ns) {
 		.map(hostname => ns.getServer(hostname))
 		.sort((a, b) => b.maxRam - a.maxRam);
 
-
 	const execScript = (source, destination, script, { threadsNeeded, delay }) => {
 		const scriptCost = ns.getScriptRam(script);
 		const availRam = ns.getServerMaxRam(source.hostname) - ns.getServerUsedRam(source.hostname);
@@ -200,7 +200,7 @@ export async function main(ns) {
 		}
 		return null;
 	}
-	const dispatchWeak = async (controlledServers, destination) => {
+	const dispatchWeak = async destination => {
 		let weakensRemaining = getWeakThreads(destination.hostname);
 		let longestTimeTaken = -Infinity;
 		while (weakensRemaining > 0) {
@@ -210,7 +210,7 @@ export async function main(ns) {
 			}
 			weakensRemaining = getWeakThreads(destination.hostname);
 			log(`Weakening ${destination.hostname} with ${weakensRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of controlledServers) {
+			for (const source of getControlledServers(nukedDestinations)) {
 				if (weakensRemaining < 1) {
 					break;
 				}
@@ -226,7 +226,7 @@ export async function main(ns) {
 		}
 		return longestTimeTaken;
 	}
-	const dispatchGrow = async (controlledServers, destination) => {
+	const dispatchGrow = async destination => {
 		let growsRemaining = getGrowThreads(destination.hostname);
 		let weakensRemaining = Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
 		let longestTimeTaken = -Infinity;
@@ -237,7 +237,7 @@ export async function main(ns) {
 			}
 			growsRemaining = getGrowThreads(destination.hostname);
 			log(`Growing ${destination.hostname} with ${growsRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of controlledServers) {
+			for (const source of getControlledServers(nukedDestinations)) {
 				if (growsRemaining < 1) {
 					break;
 				}
@@ -260,7 +260,7 @@ export async function main(ns) {
 		}
 		return longestTimeTaken;
 	}
-	const dispatchHack = async (controlledServers, destination) => {
+	const dispatchHack = async destination => {
 		let hacksRemaining = getHackThreads(destination.hostname);
 		let weakensRemaining = Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 		let longestTimeTaken = -Infinity;
@@ -271,7 +271,7 @@ export async function main(ns) {
 			}
 			hacksRemaining = getHackThreads(destination.hostname);
 			log(`Hacking ${destination.hostname} with ${hacksRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of controlledServers) {
+			for (const source of getControlledServers(nukedDestinations)) {
 				if (hacksRemaining < 1) {
 					break;
 				}
@@ -303,8 +303,7 @@ export async function main(ns) {
 		.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
 		.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
 		.map(hostname => ns.getServer(hostname));
-	let controlledServers = getControlledServers(nukedDestinations);
-	await installAgents(controlledServers);
+	await installAgents(getControlledServers(nukedDestinations));
 	killOtherScriptsOnHome(ns.getServer(ROOT_NODE));
 
 	// Note: This is an infinite loop cycling through the top n servers
@@ -318,27 +317,26 @@ export async function main(ns) {
 		const moneyMax = ns.getServerMaxMoney(destination.hostname);
 		const securityLevel = ns.getServerSecurityLevel(destination.hostname);
 		const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
-		controlledServers = getControlledServers(nukedDestinations);
 
 		if (minSecurityLevel < securityLevel) {
-			await dispatchWeak(controlledServers, destination);
+			await dispatchWeak(destination);
 			report(destination);
 			continue;
 		}
 
 		if (minSecurityLevel === securityLevel) {
-			killScriptOnAllServers(controlledServers, destination, AGENT_WEAK_SCRIPT);
+			killScriptOnAllServers(destination, AGENT_WEAK_SCRIPT);
 		}
 
 		if (moneyAvail < moneyMax) {
-			killScriptOnAllServers(controlledServers, destination, AGENT_HACK_SCRIPT);
-			await dispatchGrow(controlledServers, destination);
+			killScriptOnAllServers(destination, AGENT_HACK_SCRIPT);
+			await dispatchGrow(destination);
 			report(destination);
 		}
 
 		if (moneyAvail === moneyMax) {
-			killScriptOnAllServers(controlledServers, destination, AGENT_GROW_SCRIPT);
-			await dispatchHack(controlledServers, destination);
+			killScriptOnAllServers(destination, AGENT_GROW_SCRIPT);
+			await dispatchHack(destination);
 			report(destination);
 		}
 
