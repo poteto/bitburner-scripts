@@ -8,7 +8,8 @@ import createLogger from './create-logger.js';
 
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
-const INTERVAL = 500;
+const DISPATCH_INTERVAL = 500;
+const LOOP_INTERVAL = 1_000;
 const WEAK_AMOUNT = 0.05;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
@@ -42,9 +43,7 @@ export async function main(ns) {
 	ns.disableLog('getServerMoneyAvailable');
 	ns.disableLog('getServerMaxMoney');
 	ns.disableLog('sleep');
-
-	const visited = new Set();
-	const nukedDestinations = new Set();
+	ns.disableLog('nuke');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
@@ -52,86 +51,92 @@ export async function main(ns) {
 	const format2Decimals = x => ns.nFormat(x, '0,0.00');
 
 	const isHome = hostname => hostname === ROOT_NODE;
-	const isOwnedFleet = hostname => hostname.startsWith(FLEET_PREFIX);
-	const isOwned = hostname => isHome(hostname) || isOwnedFleet(hostname);
+	const isFleet = hostname => hostname.startsWith(FLEET_PREFIX);
+	const isOwned = hostname => isHome(hostname) || isFleet(hostname);
 
-	const getGrowThreads = (hostname) => {
+	const getGrowThreads = hostname => {
 		const moneyAvail = ns.getServerMoneyAvailable(hostname);
 		const moneyMax = ns.getServerMaxMoney(hostname);
 		const growRate = moneyMax / moneyAvail;
-		if (Math.abs(growRate) === Infinity) {
-			return 10_000;
+		if (moneyMax === moneyAvail) {
+			return 0;
 		}
-		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 5);
+		if (Math.abs(growRate) === Infinity) {
+			return 100_000;
+		}
+		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 1000);
 	}
-	const getHackThreads = (hostname) => {
+	const getHackThreads = hostname => {
 		const moneyAvail = ns.getServerMoneyAvailable(hostname);
 		const moneyMax = ns.getServerMaxMoney(hostname);
 		if (moneyAvail === 0) {
 			return 0;
 		}
-		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)) * 5);
+		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)) * 1000);
 	}
-	const getWeakThreads = (hostname) =>
+	const getWeakThreads = hostname =>
 		Math.ceil((ns.getServerSecurityLevel(hostname) - ns.getServerMinSecurityLevel(hostname)) / WEAK_AMOUNT);
 
 	const getGrowTime = destination => Math.ceil(ns.getGrowTime(destination.hostname));
 	const getWeakTime = destination => Math.ceil(ns.getWeakenTime(destination.hostname));
 	const getHackTime = destination => Math.ceil(ns.getHackTime(destination.hostname));
 
-	const report = (destination) => {
-		log(`--- REPORT for ${destination.hostname} ---`);
-		log(`moneyAvail  : ${formatMoney(ns.getServerMoneyAvailable(destination.hostname))}`);
-		log(`moneyMax    : ${formatMoney(ns.getServerMaxMoney(destination.hostname))}`);
-		log(`currSecurity: ${format2Decimals(ns.getServerSecurityLevel(destination.hostname))}`);
-		log(`minSecurity : ${format2Decimals(ns.getServerMinSecurityLevel(destination.hostname))}`);
+	const report = destination => {
+		const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
+		const moneyMax = ns.getServerMaxMoney(destination.hostname);
+		const moneyPercent = moneyCurr / moneyMax * 100;
+		const securityCurr = ns.getServerSecurityLevel(destination.hostname);
+		const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
+		const securityPerecent = securityMin / securityCurr * 100;
+		log(`--- Report for ${destination.hostname} ---`);
+		log(`  Money   : ${formatMoney(moneyCurr)} / ${formatMoney(moneyMax)} (${format2Decimals(moneyPercent)}%)`);
+		log(`  Security: ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)} (${format2Decimals(securityPerecent)}%)`);
 	}
 
-	const tryNuke = (hostname) => {
+	const tryNuke = hostname => {
 		if (isOwned(hostname)) {
 			return false;
 		}
-		const user = ns.getPlayer();
 		const server = ns.getServer(hostname);
+		const user = ns.getPlayer();
 
 		if (user.hacking < server.requiredHackingSkill) {
-			log(`Expected hacking level ${server.requiredHackingSkill} for ${hostname}, got: ${user.hacking}`, 'warning');
+			log(`Expected hacking level ${server.requiredHackingSkill} for ${server.hostname}, got: ${user.hacking}`, 'warning');
 			return false;
 		}
 
 		if (server.sshPortOpen === false && ns.fileExists('BruteSSH.exe')) {
-			ns.brutessh(hostname);
+			ns.brutessh(server.hostname);
 		}
 
 		if (server.ftpPortOpen === false && ns.fileExists('FTPCrack.exe')) {
-			ns.ftpcrack(hostname);
+			ns.ftpcrack(server.hostname);
 		}
 
 		if (server.smtpPortOpen === false && ns.fileExists('relaySMTP.exe')) {
-			ns.relaysmtp(hostname);
+			ns.relaysmtp(server.hostname);
 		}
 
 		if (server.httpPortOpen === false && ns.fileExists('HTTPWorm.exe')) {
-			ns.httpworm(hostname);
+			ns.httpworm(server.hostname);
 		}
 
 		if (server.sqlPortOpen === false && ns.fileExists('SQLInject.exe')) {
-			ns.sqlinject(hostname);
+			ns.sqlinject(server.hostname);
 		}
 
-		if (server.openPortCount >= ns.getServerNumPortsRequired(hostname)) {
-			ns.nuke(hostname);
+		if (server.openPortCount >= ns.getServerNumPortsRequired(server.hostname)) {
+			ns.nuke(server.hostname);
 		}
 
 		if (server.backdoorInstalled === false) {
-			log(`${server.hostname} can be backdoored`, 'warning');
-			// ns.installBackdoor(hostname);
+			// ns.installBackdoor(server.hostname);
 		}
 
-		return ns.hasRootAccess(hostname);
+		return ns.hasRootAccess(server.hostname);
 	}
-	const installAgents = async () => {
-		for (const server of getControlledServers(nukedDestinations)) {
+	const installAgents = async nukedHostnames => {
+		for (const server of getControlledServers(nukedHostnames)) {
 			if (isHome(server.hostname)) {
 				continue;
 			}
@@ -142,8 +147,8 @@ export async function main(ns) {
 			}
 		}
 	}
-	const killScriptOnAllServers = (script, destination) => {
-		for (const server of getControlledServers(nukedDestinations)) {
+	const killScriptOnAllServers = (nukedHostnames, destination, script) => {
+		for (const server of getControlledServers(nukedHostnames)) {
 			for (const process of ns.ps(server.hostname)) {
 				if (process.filename === script) {
 					process.args.splice(0, 1, destination.hostname);
@@ -152,38 +157,35 @@ export async function main(ns) {
 			}
 		}
 	}
-	const killOtherScriptsOnHome = (home) => {
-		for (const process of ns.ps(home.hostname)) {
-			if (AGENT_PAYLOAD.has(process.filename)) {
-				ns.kill(process.filename, home.hostname, ...process.args);
+	const createTraversal = () => {
+		const visited = new Set();
+		const nukedHostnames = new Set();
+		return function traverse(hostname, depth = 0) {
+			const reachableHostnames = ns
+				.scan(hostname)
+				.filter(nextHostname => isOwned(nextHostname) === false);
+			for (const nextHostname of reachableHostnames) {
+				if (visited.has(nextHostname)) {
+					continue;
+				}
+				visited.add(nextHostname);
+				if (tryNuke(nextHostname) === true) {
+					nukedHostnames.add(nextHostname);
+				}
+				traverse(nextHostname, depth + 1);
 			}
+			return nukedHostnames;
 		}
 	}
-	const traverse = (hostname, depth = 0) => {
-		const scannedHostnames = ns
-			.scan(hostname)
-			.filter(nextHostname => isOwned(nextHostname) === false);
-		if (scannedHostnames.length) {
-			log(`Found: ${scannedHostnames} at depth: ${depth}`);
-		}
-		for (const nextHostname of scannedHostnames) {
-			if (visited.has(nextHostname)) {
-				log(`Already traversed, skipping: ${nextHostname}`, 'warning');
-				continue;
-			}
-			log(`Traversing: ${nextHostname}`);
-			visited.add(nextHostname);
-			if (tryNuke(nextHostname) === true) {
-				nukedDestinations.add(nextHostname);
-			} else {
-				log(`Couldn't nuke: ${nextHostname}`);
-			}
-			traverse(nextHostname, depth + 1);
-		}
-	}
-	const getControlledServers = (nukedDestinations) => [ROOT_NODE, ...nukedDestinations, ...ns.getPurchasedServers()]
+	const getControlledServers = nukedHostnames => [ROOT_NODE, ...nukedHostnames, ...ns.getPurchasedServers()]
 		.map(hostname => ns.getServer(hostname))
-		.sort((a, b) => b.maxRam - a.maxRam);
+		.sort((a, b) => (b.cpuCores * b.maxRam) - (a.cpuCores * a.maxRam));
+	const getRankedDestinations = nukedHostnames => {
+		return Array.from(nukedHostnames)
+			.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
+			.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
+			.map(hostname => ns.getServer(hostname));
+	}
 
 	const execScript = (source, destination, script, { threadsNeeded, delay }) => {
 		const scriptCost = ns.getScriptRam(script);
@@ -203,7 +205,7 @@ export async function main(ns) {
 		}
 		return null;
 	}
-	const dispatchWeak = async destination => {
+	const dispatchWeak = async (nukedHostnames, destination) => {
 		let weakensRemaining = getWeakThreads(destination.hostname);
 		let longestTimeTaken = -Infinity;
 		while (weakensRemaining > 0) {
@@ -212,8 +214,11 @@ export async function main(ns) {
 				longestTimeTaken = currentTimeTaken;
 			}
 			weakensRemaining = getWeakThreads(destination.hostname);
+			if (weakensRemaining === 0) {
+				break;
+			}
 			log(`Weakening ${destination.hostname} with ${weakensRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of getControlledServers(nukedDestinations)) {
+			for (const source of getControlledServers(nukedHostnames)) {
 				if (weakensRemaining < 1) {
 					break;
 				}
@@ -225,11 +230,11 @@ export async function main(ns) {
 					weakensRemaining = res.threadsRemaining;
 				}
 			}
-			await ns.sleep(INTERVAL);
+			await ns.sleep(DISPATCH_INTERVAL);
 		}
 		return longestTimeTaken;
 	}
-	const dispatchGrow = async destination => {
+	const dispatchGrow = async (nukedHostnames, destination) => {
 		let growsRemaining = getGrowThreads(destination.hostname);
 		let weakensRemaining = Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
 		let longestTimeTaken = -Infinity;
@@ -239,8 +244,11 @@ export async function main(ns) {
 				longestTimeTaken = currentTimeTaken;
 			}
 			growsRemaining = getGrowThreads(destination.hostname);
+			if (growsRemaining === 0) {
+				break;
+			}
 			log(`Growing ${destination.hostname} with ${growsRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of getControlledServers(nukedDestinations)) {
+			for (const source of getControlledServers(nukedHostnames)) {
 				if (growsRemaining < 1) {
 					break;
 				}
@@ -259,11 +267,11 @@ export async function main(ns) {
 					weakensRemaining = weakRes.threadsRemaining;
 				}
 			}
-			await ns.sleep(INTERVAL);
+			await ns.sleep(DISPATCH_INTERVAL);
 		}
 		return longestTimeTaken;
 	}
-	const dispatchHack = async destination => {
+	const dispatchHack = async (nukedHostnames, destination) => {
 		let hacksRemaining = getHackThreads(destination.hostname);
 		let weakensRemaining = Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 		let longestTimeTaken = -Infinity;
@@ -273,8 +281,11 @@ export async function main(ns) {
 				longestTimeTaken = currentTimeTaken;
 			}
 			hacksRemaining = getHackThreads(destination.hostname);
+			if (hacksRemaining === 0) {
+				break;
+			}
 			log(`Hacking ${destination.hostname} with ${hacksRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
-			for (const source of getControlledServers(nukedDestinations)) {
+			for (const source of getControlledServers(nukedHostnames)) {
 				if (hacksRemaining < 1) {
 					break;
 				}
@@ -293,58 +304,63 @@ export async function main(ns) {
 					weakensRemaining = weakRes.threadsRemaining;
 				}
 			}
-			await ns.sleep(INTERVAL);
+			await ns.sleep(DISPATCH_INTERVAL);
 		}
 		return longestTimeTaken;
 	}
 
-	traverse(currentHost);
-	log(`Nuked: ${Array.from(nukedDestinations)}`, 'success');
-	await ns.write('nuked.txt', Array.from(nukedDestinations), 'w');
+	while (true) {
+		const traverse = createTraversal();
+		const nukedHostnames = traverse(currentHost);
+		const rankedDestinations = getRankedDestinations(nukedHostnames);
+		await installAgents(nukedHostnames);
 
-	const sortedDestinations = Array.from(nukedDestinations)
-		.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
-		.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
-		.map(hostname => ns.getServer(hostname));
-	await installAgents(getControlledServers(nukedDestinations));
-	killOtherScriptsOnHome(ns.getServer(ROOT_NODE));
-
-	// Note: This is an infinite loop cycling through the top n servers
-	for (const destinationIdx of makeCycle(0, sortedDestinations.length - 1)) {
-		const destination = sortedDestinations[destinationIdx];
-		if (destination == null) {
-			continue;
-		}
-		report(destination);
-		const moneyAvail = ns.getServerMoneyAvailable(destination.hostname);
-		const moneyMax = ns.getServerMaxMoney(destination.hostname);
-		const securityLevel = ns.getServerSecurityLevel(destination.hostname);
-		const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
-
-		if (minSecurityLevel < securityLevel) {
-			killScriptOnAllServers(destination, AGENT_GROW_SCRIPT);
-			killScriptOnAllServers(destination, AGENT_HACK_SCRIPT);
-			await dispatchWeak(destination);
+		// Note: This is an infinite loop cycling through the top n servers
+		inner:
+		for (const destinationIdx of makeCycle(0, rankedDestinations.length - 1)) {
+			const traverse = createTraversal();
+			const newTraversedHostnames = traverse(currentHost);
+			if (newTraversedHostnames.length !== nukedHostnames.length) {
+				log(`New nukable servers detected`, 'warning');
+				break inner;
+			}
+			const destination = rankedDestinations[destinationIdx];
+			if (destination == null) {
+				continue;
+			}
 			report(destination);
-			continue;
+			const moneyAvail = ns.getServerMoneyAvailable(destination.hostname);
+			const moneyMax = ns.getServerMaxMoney(destination.hostname);
+			const securityLevel = ns.getServerSecurityLevel(destination.hostname);
+			const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
+
+			if (minSecurityLevel < securityLevel) {
+				killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
+				killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
+				await dispatchWeak(nukedHostnames, destination);
+				report(destination);
+				continue;
+			}
+
+			if (minSecurityLevel === securityLevel) {
+				killScriptOnAllServers(nukedHostnames, destination, AGENT_WEAK_SCRIPT);
+			}
+
+			if (moneyAvail < moneyMax) {
+				killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
+				await dispatchGrow(nukedHostnames, destination);
+				report(destination);
+			}
+
+			if (moneyAvail === moneyMax) {
+				killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
+				await dispatchHack(nukedHostnames, destination);
+				report(destination);
+			}
+
+			await ns.sleep(LOOP_INTERVAL);
 		}
 
-		if (minSecurityLevel === securityLevel) {
-			killScriptOnAllServers(destination, AGENT_WEAK_SCRIPT);
-		}
-
-		if (moneyAvail < moneyMax) {
-			killScriptOnAllServers(destination, AGENT_HACK_SCRIPT);
-			await dispatchGrow(destination);
-			report(destination);
-		}
-
-		if (moneyAvail === moneyMax) {
-			killScriptOnAllServers(destination, AGENT_GROW_SCRIPT);
-			await dispatchHack(destination);
-			report(destination);
-		}
-
-		await ns.sleep(INTERVAL);
+		await ns.sleep(LOOP_INTERVAL);
 	}
 }
