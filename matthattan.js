@@ -41,7 +41,6 @@ export async function main(ns) {
 			return false;
 		}
 
-
 		if (server.sshPortOpen === false && ns.fileExists('BruteSSH.exe')) {
 			ns.brutessh(node);
 		}
@@ -65,11 +64,11 @@ export async function main(ns) {
 		if (server.openPortCount >= ns.getServerNumPortsRequired(node)) {
 			ns.nuke(node);
 		}
-		
-        if (server.backdoorInstalled === false) {
-            log(`${server.hostname} can be backdoored`, 'warning');
-            // ns.installBackdoor(hostname);
-        }
+
+		if (server.backdoorInstalled === false) {
+			log(`${server.hostname} can be backdoored`, 'warning');
+			// ns.installBackdoor(hostname);
+		}
 
 		return ns.hasRootAccess(node);
 	}
