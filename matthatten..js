@@ -22,6 +22,7 @@ export async function main(ns) {
 	ns.disableLog('exec');
 	ns.disableLog('rm');
 	ns.disableLog('getServerSecurityLevel');
+	ns.disableLog('kill');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
@@ -71,15 +72,18 @@ export async function main(ns) {
 		return ns.hasRootAccess(node);
 	}
 	const pointAgentAtTarget = async (node, target) => {
-		ns.killall(node);
-		ns.rm(AGENT_SCRIPT, node);
-		await ns.scp(AGENT_SCRIPT, node);
+		ns.kill(AGENT_SCRIPT, node, target);
+		if (!isHome(node)) {
+			ns.killall(node);
+			ns.rm(AGENT_SCRIPT, node);
+			await ns.scp(AGENT_SCRIPT, node);
+		}
 
 		const serverUsedRam = ns.getServerUsedRam(node);
 		const serverMaxRam = ns.getServerMaxRam(node);
 		const availableRam = serverMaxRam - serverUsedRam;
 		const threads = Math.max(Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT)), 1);
-		const scriptArgs = [target, threads];
+		const scriptArgs = [target];
 
 		if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
 			ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
@@ -121,25 +125,27 @@ export async function main(ns) {
 			const node = ns.getServer(nukedNode);
 			sortedTargets.push(node);
 		}
-		return sortedTargets.sort((a, b) => (a.moneyMax > b.moneyMax) ? 1 : -1)
+		return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax).slice(0, 24);
 	}
 
 	const arraySortedTargets = listOfTargetsSorted();
 	const arraySortedTargets2 = [];
 	let useFirst = true;
-	const fleet = [...nuked, ...ns.getPurchasedServers()].sort((a, b) => (a.serverMaxRam > b.serverMaxRam) ? 1 : -1);
+	const fleet = [...nuked, ...ns.getPurchasedServers(), 'home']
+		.map(node => ns.getServer(node))
+		.sort((a, b) => (a.serverMaxRam > b.serverMaxRam) ? 1 : -1);
 
 	log(`List of targets length : ${arraySortedTargets.length}`, 'success');
 
 	for (const node of fleet) {
 		if (useFirst) {
-			const hostTemp = arraySortedTargets.pop();
-			await pointAgentAtTarget(node, String(hostTemp.hostname));
+			const hostTemp = arraySortedTargets.shift();
+			await pointAgentAtTarget(node.hostname, hostTemp.hostname);
 			arraySortedTargets2.push(hostTemp);
 		}
 		else {
-			const hostTemp = arraySortedTargets2.shift();
-			await pointAgentAtTarget(node, String(hostTemp.hostname));
+			const hostTemp = arraySortedTargets2.pop();
+			await pointAgentAtTarget(node.hostname, hostTemp.hostname);
 			arraySortedTargets.push(hostTemp);
 		}
 

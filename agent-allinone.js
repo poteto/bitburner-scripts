@@ -30,7 +30,7 @@ export async function main(ns) {
 	const formatMoney = x => ns.nFormat(x, '($0.00a)');
 	const formatSecurity = x => ns.nFormat(x, '0.00');
 
-	const [node, threads] = ns.args;
+	const [node] = ns.args;
 	const nodeStats = {
 		get currentMoney() { return ns.getServerMoneyAvailable(node) },
 		get maxMoney() { return ns.getServerMaxMoney(node) },
@@ -41,16 +41,16 @@ export async function main(ns) {
 	while (true) {
 		while (nodeStats.currentMoney < nodeStats.maxMoney) {
 			while (nodeStats.currentSecurity > nodeStats.minSecurity) {
-				await ns.weaken(node, { threads });
+				await ns.weaken(node);
 				log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
 			}
-			await ns.grow(node, { threads });
+			await ns.grow(node);
 			log(`Money   : ${formatMoney(nodeStats.currentMoney)} (Max: ${formatMoney(nodeStats.maxMoney)})`);
 			while (nodeStats.currentSecurity > nodeStats.minSecurity) {
-				await ns.weaken(node, { threads });
+				await ns.weaken(node);
 				log(`Security: ${formatSecurity(nodeStats.currentSecurity)} (Min: ${formatSecurity(nodeStats.minSecurity)})`);
 			}
 		}
-		await ns.hack(node, { threads });
+		await ns.hack(node);
 	}
 }
