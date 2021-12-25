@@ -76,6 +76,10 @@ export async function main(ns) {
                 insufficientFunds(cost);
                 await ns.sleep(INTERVAL);
             }
+            while (ns.ps(server).length > 0) {
+                log(`Can't upgrade ${server} as there are scripts running`);
+                await ns.sleep(INTERVAL);
+            }
             ns.killall(server);
             if (ns.deleteServer(server) === false) {
                 throw new Error('Should never get here');

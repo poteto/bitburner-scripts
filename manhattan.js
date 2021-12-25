@@ -57,7 +57,7 @@ export async function main(ns) {
 		const moneyMax = ns.getServerMaxMoney(hostname);
 		const growRate = moneyMax / moneyAvail;
 		if (Math.abs(growRate) === Infinity) {
-			return 10_000;
+			return 1;
 		}
 		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 5);
 	}
@@ -68,8 +68,6 @@ export async function main(ns) {
 	}
 	const getWeakThreads = (hostname) =>
 		Math.ceil((ns.getServerSecurityLevel(hostname) - ns.getServerMinSecurityLevel(hostname)) / WEAK_AMOUNT);
-	const efficiencyFor = hostname =>
-		ns.getServerMaxMoney(hostname) / (ns.getHackTime(hostname) + ns.getWeakenTime(hostname) + ns.getGrowTime(hostname));
 
 	const getGrowTime = destination => Math.ceil(ns.getGrowTime(destination.hostname));
 	const getWeakTime = destination => Math.ceil(ns.getWeakenTime(destination.hostname));
@@ -179,6 +177,10 @@ export async function main(ns) {
 			traverse(nextHostname, depth + 1);
 		}
 	}
+	const getControlledServers = (nukedDestinations) => [ROOT_NODE, ...nukedDestinations, ...ns.getPurchasedServers()]
+		.map(hostname => ns.getServer(hostname))
+		.sort((a, b) => b.maxRam - a.maxRam);
+
 
 	const execScript = (source, destination, script, { threadsNeeded, delay }) => {
 		const scriptCost = ns.getScriptRam(script);
@@ -233,6 +235,7 @@ export async function main(ns) {
 			if (currentTimeTaken > longestTimeTaken) {
 				longestTimeTaken = currentTimeTaken;
 			}
+			growsRemaining = getGrowThreads(destination.hostname);
 			log(`Growing ${destination.hostname} with ${growsRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
 			for (const source of controlledServers) {
 				if (growsRemaining < 1) {
@@ -266,6 +269,7 @@ export async function main(ns) {
 			if (currentTimeTaken > longestTimeTaken) {
 				longestTimeTaken = currentTimeTaken;
 			}
+			hacksRemaining = getHackThreads(destination.hostname);
 			log(`Hacking ${destination.hostname} with ${hacksRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
 			for (const source of controlledServers) {
 				if (hacksRemaining < 1) {
@@ -299,9 +303,7 @@ export async function main(ns) {
 		.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
 		.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
 		.map(hostname => ns.getServer(hostname));
-	const controlledServers = [ROOT_NODE, ...nukedDestinations, ...ns.getPurchasedServers()]
-		.map(hostname => ns.getServer(hostname))
-		.sort((a, b) => b.maxRam - a.maxRam);
+	let controlledServers = getControlledServers(nukedDestinations);
 	await installAgents(controlledServers);
 	killOtherScriptsOnHome(ns.getServer(ROOT_NODE));
 
@@ -316,6 +318,7 @@ export async function main(ns) {
 		const moneyMax = ns.getServerMaxMoney(destination.hostname);
 		const securityLevel = ns.getServerSecurityLevel(destination.hostname);
 		const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
+		controlledServers = getControlledServers(nukedDestinations);
 
 		if (minSecurityLevel < securityLevel) {
 			await dispatchWeak(controlledServers, destination);
@@ -328,6 +331,7 @@ export async function main(ns) {
 		}
 
 		if (moneyAvail < moneyMax) {
+			killScriptOnAllServers(controlledServers, destination, AGENT_HACK_SCRIPT);
 			await dispatchGrow(controlledServers, destination);
 			report(destination);
 		}
