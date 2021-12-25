@@ -77,7 +77,7 @@ export async function main(ns) {
                 await ns.sleep(INTERVAL);
             }
             while (ns.ps(server).length > 0) {
-                log(`Can't upgrade ${server} as there are scripts running`);
+                log(`Can't upgrade ${server} as there are scripts running`, 'warning');
                 await ns.sleep(INTERVAL);
             }
             ns.killall(server);
