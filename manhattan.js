@@ -64,7 +64,7 @@ export async function main(ns) {
 		if (Math.abs(growRate) === Infinity) {
 			return 100_000;
 		}
-		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 1000);
+		return Math.ceil(ns.growthAnalyze(hostname, growRate) * 10000);
 	}
 	const getHackThreads = hostname => {
 		const moneyAvail = ns.getServerMoneyAvailable(hostname);
@@ -72,7 +72,7 @@ export async function main(ns) {
 		if (moneyAvail === 0) {
 			return 0;
 		}
-		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)) * 1000);
+		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)) * 10000);
 	}
 	const getWeakThreads = hostname =>
 		Math.ceil((ns.getServerSecurityLevel(hostname) - ns.getServerMinSecurityLevel(hostname)) / WEAK_AMOUNT);
@@ -89,8 +89,8 @@ export async function main(ns) {
 		const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
 		const securityPerecent = securityMin / securityCurr * 100;
 		log(`--- Report for ${destination.hostname} ---`);
-		log(`  Money   : ${formatMoney(moneyCurr)} / ${formatMoney(moneyMax)} (${format2Decimals(moneyPercent)}%)`);
-		log(`  Security: ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)} (${format2Decimals(securityPerecent)}%)`);
+		log(`  Money   : (${format2Decimals(moneyPercent)}%) ${formatMoney(moneyCurr)} / ${formatMoney(moneyMax)}`);
+		log(`  Security: (${format2Decimals(securityPerecent)}%) ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)}`);
 	}
 
 	const tryNuke = hostname => {
