@@ -67,6 +67,9 @@ export async function main(ns) {
 	const getHackThreads = (hostname) => {
 		const moneyAvail = ns.getServerMoneyAvailable(hostname);
 		const moneyMax = ns.getServerMaxMoney(hostname);
+		if (moneyAvail === 0) {
+			return 0;
+		}
 		return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)) * 5);
 	}
 	const getWeakThreads = (hostname) =>
@@ -319,6 +322,8 @@ export async function main(ns) {
 		const minSecurityLevel = ns.getServerMinSecurityLevel(destination.hostname);
 
 		if (minSecurityLevel < securityLevel) {
+			killScriptOnAllServers(destination, AGENT_GROW_SCRIPT);
+			killScriptOnAllServers(destination, AGENT_HACK_SCRIPT);
 			await dispatchWeak(destination);
 			report(destination);
 			continue;
