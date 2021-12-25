@@ -49,6 +49,7 @@ export async function main(ns) {
 	const currentHost = ns.getHostname();
 	const formatMoney = x => ns.nFormat(x, '($0.00a)');
 	const format2Decimals = x => ns.nFormat(x, '0,0.00');
+	const formatPercent = x => ns.nFormat(x, '000.0%');
 
 	const isHome = hostname => hostname === ROOT_NODE;
 	const isFleet = hostname => hostname.startsWith(FLEET_PREFIX);
@@ -84,13 +85,11 @@ export async function main(ns) {
 	const report = destination => {
 		const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
 		const moneyMax = ns.getServerMaxMoney(destination.hostname);
-		const moneyPercent = moneyCurr / moneyMax * 100;
 		const securityCurr = ns.getServerSecurityLevel(destination.hostname);
 		const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
-		const securityPerecent = securityMin / securityCurr * 100;
 		log(`--- Report for ${destination.hostname} ---`);
-		log(`  Money   : (${format2Decimals(moneyPercent)}%) ${formatMoney(moneyCurr)} / ${formatMoney(moneyMax)}`);
-		log(`  Security: (${format2Decimals(securityPerecent)}%) ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)}`);
+		log(`  Money   : (${formatPercent(moneyCurr / moneyMax)}) ${formatMoney(moneyCurr)} / ${formatMoney(moneyMax)}`);
+		log(`  Security: (${formatPercent(securityMin / securityCurr)}) ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)}`);
 	}
 
 	const tryNuke = hostname => {
