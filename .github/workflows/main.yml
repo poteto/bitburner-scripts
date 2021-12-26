@@ -34,3 +34,11 @@ jobs:
           contents: curl https://raw.githubusercontent.com/danielyxie/bitburner/dev/dist/bitburner.d.ts | echo
           # The mode of writing to use: `overwrite`, `append`, or `preserve`.
           write-mode: overwrite
+
+      - name: Commit bitburner types
+        run: |
+          git remote set-url origin ${{ secrets.ssh }}
+          git fetch origin main
+          git add bitburner.d.ts && git commit -m "Sync bitburner types"
+          git push origin HEAD:main
+          
