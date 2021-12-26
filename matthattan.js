@@ -13,6 +13,7 @@ export const AGENT_SCRIPT = 'agent-allinone.js';
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.tail();
+	ns.disableLog('disableLog');
 	ns.disableLog('getServerNumPortsRequired');
 	ns.disableLog('scan');
 	ns.disableLog('getServerUsedRam');

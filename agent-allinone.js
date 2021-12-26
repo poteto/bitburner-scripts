@@ -21,6 +21,7 @@ export default function createLogger(ns) {
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	ns.disableLog('disableLog');
 	ns.disableLog('getServerSecurityLevel');
 	ns.disableLog('getServerMinSecurityLevel');
 	ns.disableLog('getServerMoneyAvailable');
