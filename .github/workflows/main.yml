@@ -44,8 +44,6 @@ jobs:
           github-token: ${{ secrets.PAT }}
           # Specify commit message
           commit-message: Sync bitburner types
-          # Pull and rebase before commiting. Useful when using commit inside matrix.
-          rebase: true
           # Specific files to add.
           files: bitburner.d.ts
           
