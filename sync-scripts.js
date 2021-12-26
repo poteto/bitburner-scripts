@@ -1,6 +1,6 @@
 import createLogger from "./create-logger.js";
 
-const IGNORE = new Set(['LICENSE', '.prettierrc.json']);
+const IGNORE = new Set(["LICENSE", ".prettierrc.json"]);
 const REPO_URL =
   "https://api.github.com/repos/poteto/bitburner-scripts/git/trees/main?recursive=1";
 const REPO_TXT = "repo.json.txt";
