@@ -29,6 +29,7 @@ function* makeCycle(start, end) {
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.tail();
+	ns.disableLog('disableLog');
 	ns.disableLog('getServerNumPortsRequired');
 	ns.disableLog('scan');
 	ns.disableLog('getServerUsedRam');
@@ -44,6 +45,11 @@ export async function main(ns) {
 	ns.disableLog('getServerMaxMoney');
 	ns.disableLog('sleep');
 	ns.disableLog('nuke');
+	ns.disableLog('brutessh');
+	ns.disableLog('ftpcrack');
+	ns.disableLog('relaysmtp');
+	ns.disableLog('httpworm');
+	ns.disableLog('sqlinject');
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
@@ -96,6 +102,7 @@ export async function main(ns) {
 		if (isOwned(hostname)) {
 			return false;
 		}
+
 		const server = ns.getServer(hostname);
 		const user = ns.getPlayer();
 
@@ -160,11 +167,8 @@ export async function main(ns) {
 		const visited = new Set();
 		const nukedHostnames = new Set();
 		return function traverse(hostname, depth = 0) {
-			const reachableHostnames = ns
-				.scan(hostname)
-				.filter(nextHostname => isOwned(nextHostname) === false);
-			for (const nextHostname of reachableHostnames) {
-				if (visited.has(nextHostname)) {
+			for (const nextHostname of ns.scan(hostname)) {
+				if (isOwned(nextHostname) || visited.has(nextHostname)) {
 					continue;
 				}
 				visited.add(nextHostname);
@@ -180,10 +184,15 @@ export async function main(ns) {
 		.map(hostname => ns.getServer(hostname))
 		.sort((a, b) => (b.cpuCores * b.maxRam) - (a.cpuCores * a.maxRam));
 	const getRankedDestinations = nukedHostnames => {
-		return Array.from(nukedHostnames)
-			.filter(hostname => ns.getServerMaxMoney(hostname) > 0)
-			.sort((a, b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))
-			.map(hostname => ns.getServer(hostname));
+		const rankedDestinations = [];
+		for (const hostname of nukedHostnames) {
+			const maxMoney = ns.getServerMaxMoney(hostname);
+			if (maxMoney === 0) {
+				continue;
+			}
+			rankedDestinations.push(ns.getServer(hostname));
+		}
+		return rankedDestinations.sort((a, b) => b.moneyMax - a.moneyMax);
 	}
 
 	const execScript = (source, destination, script, { threadsNeeded, delay }) => {
@@ -308,26 +317,20 @@ export async function main(ns) {
 		return longestTimeTaken;
 	}
 
-	while (true) {
-		const traverse = createTraversal();
-		const nukedHostnames = traverse(currentHost);
+	// Note: This is an infinite loop cycling through servers
+	const orchestrateControlledServers = async nukedHostnames => {
 		const rankedDestinations = getRankedDestinations(nukedHostnames);
-		await installAgents(nukedHostnames);
-
-		// Note: This is an infinite loop cycling through the top n servers
-		inner:
 		for (const destinationIdx of makeCycle(0, rankedDestinations.length - 1)) {
 			const traverse = createTraversal();
 			const newTraversedHostnames = traverse(currentHost);
 			if (newTraversedHostnames.length !== nukedHostnames.length) {
 				log(`New nukable servers detected`, 'warning');
-				break inner;
+				return;
 			}
 			const destination = rankedDestinations[destinationIdx];
 			if (destination == null) {
 				continue;
 			}
-			report(destination);
 			const moneyAvail = ns.getServerMoneyAvailable(destination.hostname);
 			const moneyMax = ns.getServerMaxMoney(destination.hostname);
 			const securityLevel = ns.getServerSecurityLevel(destination.hostname);
@@ -359,7 +362,13 @@ export async function main(ns) {
 
 			await ns.sleep(LOOP_INTERVAL);
 		}
+	}
 
+	while (true) {
+		const traverse = createTraversal();
+		const nukedHostnames = traverse(currentHost);
+		await installAgents(nukedHostnames);
+		await orchestrateControlledServers(nukedHostnames);
 		await ns.sleep(LOOP_INTERVAL);
 	}
 }
