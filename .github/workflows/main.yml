@@ -35,12 +35,17 @@ jobs:
           # The mode of writing to use: `overwrite`, `append`, or `preserve`.
           write-mode: overwrite
 
-      - name: Commit bitburner types
-        run: |
-          git add bitburner.d.ts && git commit -m "Sync bitburner types"
-      
-      - name: GitHub Push
-        uses: ad-m/github-push-action@v0.6.0
+      - name: Git Commit and Push
+        # You may pin to the exact commit or the version.
+        # uses: github-actions-x/commit@5cf7985b07155682f82d02b6c2188d90cebeb0c8
+        uses: github-actions-x/commit@v2.8
         with:
-          github_token: ${{ secrets.PAT }}
+          # Github Token with commit access
+          github-token: ${{ secrets.PAT }}
+          # Specify commit message
+          commit-message: Sync bitburner types
+          # Pull and rebase before commiting. Useful when using commit inside matrix.
+          rebase: true
+          # Specific files to add.
+          files: bitburner.d.ts
           
