@@ -53,6 +53,8 @@ export async function main(ns) {
 
 	const log = createLogger(ns);
 	const currentHost = ns.getHostname();
+
+	const formatThreads = x => ns.nFormat(x, '0,0.00a');
 	const formatMoney = x => ns.nFormat(x, '($0.00a)');
 	const format2Decimals = x => ns.nFormat(x, '0,0.00');
 	const formatPercent = x => ns.nFormat(x, '000.0%');
@@ -184,13 +186,13 @@ export async function main(ns) {
 		.map(hostname => ns.getServer(hostname))
 		.sort((a, b) => (b.cpuCores * b.maxRam) - (a.cpuCores * a.maxRam));
 	const getRankedDestinations = nukedHostnames => {
-		const rankedDestinations = [];
+		const rankedDestinations = new Array(nukedHostnames.length);
 		for (const hostname of nukedHostnames) {
-			const maxMoney = ns.getServerMaxMoney(hostname);
-			if (maxMoney === 0) {
+			const server = ns.getServer(hostname);
+			if (server.moneyMax === 0) {
 				continue;
 			}
-			rankedDestinations.push(ns.getServer(hostname));
+			rankedDestinations.push(server);
 		}
 		return rankedDestinations.sort((a, b) => b.moneyMax - a.moneyMax);
 	}
@@ -225,7 +227,7 @@ export async function main(ns) {
 			if (weakensRemaining === 0) {
 				break;
 			}
-			log(`Weakening ${destination.hostname} with ${weakensRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
+			log(`Weakening ${destination.hostname} with ${formatThreads(weakensRemaining)} threads in ${ns.tFormat(currentTimeTaken)}`);
 			for (const source of getControlledServers(nukedHostnames)) {
 				if (weakensRemaining < 1) {
 					break;
@@ -255,7 +257,7 @@ export async function main(ns) {
 			if (growsRemaining === 0) {
 				break;
 			}
-			log(`Growing ${destination.hostname} with ${growsRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
+			log(`Growing ${destination.hostname} with ${formatThreads(growsRemaining)} threads in ${ns.tFormat(currentTimeTaken)}`);
 			for (const source of getControlledServers(nukedHostnames)) {
 				if (growsRemaining < 1) {
 					break;
@@ -292,7 +294,7 @@ export async function main(ns) {
 			if (hacksRemaining === 0) {
 				break;
 			}
-			log(`Hacking ${destination.hostname} with ${hacksRemaining} threads in ${ns.tFormat(currentTimeTaken)}`);
+			log(`Hacking ${destination.hostname} with ${formatThreads(hacksRemaining)} threads in ${ns.tFormat(currentTimeTaken)}`);
 			for (const source of getControlledServers(nukedHostnames)) {
 				if (hacksRemaining < 1) {
 					break;
