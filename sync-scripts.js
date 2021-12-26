@@ -4,7 +4,6 @@
 
 import createLogger from './create-logger.js';
 
-const IGNORE = new Set(['LICENSE', '.prettierrc.json']);
 const REPO_URL =
   'https://api.github.com/repos/poteto/bitburner-scripts/git/trees/main?recursive=1';
 const REPO_TXT = 'repo.json.txt';
@@ -25,7 +24,7 @@ export async function main(ns) {
 
   const repo = JSON.parse(ns.read(REPO_TXT));
   for (const file of repo.tree) {
-    if (IGNORE.has(file.path)) {
+    if (file.type !== 'blob' || file.path.endsWith('.js') === false) {
       continue;
     }
     const url = `https://raw.githubusercontent.com/poteto/bitburner-scripts/main/${file.path}`;
