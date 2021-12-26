@@ -1,35 +1,38 @@
-import createLogger from "./create-logger.js";
-
 /**
  * Recursively traverses reachable servers beginning from the current host, opening ports as
  * needed and nuking if possible. If the server was successfully nuked, we copy over the
  * AGENT_SCRIPT which makes use of the nuked server to hack the most efficient server.
+ *
+ * @typedef { import('./bitburner.d').NS } NS
  */
 
-const ROOT_NODE = "home";
-const FLEET_PREFIX = "fleet-node";
-export const AGENT_SCRIPT = "agent-allinone.js";
+import createLogger from './create-logger.js';
+
+const ROOT_NODE = 'home';
+const FLEET_PREFIX = 'fleet-node';
+export const AGENT_SCRIPT = 'agent-allinone.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
-  ns.disableLog("disableLog");
-  ns.disableLog("getServerNumPortsRequired");
-  ns.disableLog("scan");
-  ns.disableLog("getServerUsedRam");
-  ns.disableLog("getServerMaxRam");
-  ns.disableLog("killall");
-  ns.disableLog("scp");
-  ns.disableLog("exec");
-  ns.disableLog("rm");
-  ns.disableLog("getServerSecurityLevel");
-  ns.disableLog("kill");
+  ns.disableLog('disableLog');
+  ns.disableLog('getServerNumPortsRequired');
+  ns.disableLog('scan');
+  ns.disableLog('getServerUsedRam');
+  ns.disableLog('getServerMaxRam');
+  ns.disableLog('killall');
+  ns.disableLog('scp');
+  ns.disableLog('exec');
+  ns.disableLog('rm');
+  ns.disableLog('getServerSecurityLevel');
+  ns.disableLog('kill');
 
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
-  const formatMoney = (x) => ns.nFormat(x, "($0.00a)");
 
+  /** @param {string} node */
   const isHome = (node) => node === ROOT_NODE;
+  /** @param {string} node */
   const tryNuke = (node) => {
     if (isHome(node)) {
       return false;
@@ -40,28 +43,28 @@ export async function main(ns) {
     if (user.hacking < server.requiredHackingSkill) {
       log(
         `Expected hacking level ${server.requiredHackingSkill} for ${node}, got: ${user.hacking}`,
-        "warning"
+        'warning'
       );
       return false;
     }
 
-    if (server.sshPortOpen === false && ns.fileExists("BruteSSH.exe")) {
+    if (server.sshPortOpen === false && ns.fileExists('BruteSSH.exe')) {
       ns.brutessh(node);
     }
 
-    if (server.ftpPortOpen === false && ns.fileExists("FTPCrack.exe")) {
+    if (server.ftpPortOpen === false && ns.fileExists('FTPCrack.exe')) {
       ns.ftpcrack(node);
     }
 
-    if (server.smtpPortOpen === false && ns.fileExists("relaySMTP.exe")) {
+    if (server.smtpPortOpen === false && ns.fileExists('relaySMTP.exe')) {
       ns.relaysmtp(node);
     }
 
-    if (server.httpPortOpen === false && ns.fileExists("HTTPWorm.exe")) {
+    if (server.httpPortOpen === false && ns.fileExists('HTTPWorm.exe')) {
       ns.httpworm(node);
     }
 
-    if (server.sqlPortOpen === false && ns.fileExists("SQLInject.exe")) {
+    if (server.sqlPortOpen === false && ns.fileExists('SQLInject.exe')) {
       ns.sqlinject(node);
     }
 
@@ -70,18 +73,22 @@ export async function main(ns) {
     }
 
     if (server.backdoorInstalled === false) {
-      log(`${server.hostname} can be backdoored`, "warning");
+      log(`${server.hostname} can be backdoored`, 'warning');
       // ns.installBackdoor(hostname);
     }
 
     return ns.hasRootAccess(node);
   };
+  /**
+   * @param {string} node
+   * @param {string} target
+   */
   const pointAgentAtTarget = async (node, target) => {
     ns.kill(AGENT_SCRIPT, node, target);
     if (!isHome(node)) {
       ns.killall(node);
       ns.rm(AGENT_SCRIPT, node);
-      await ns.scp(AGENT_SCRIPT, node);
+      await ns.scp(AGENT_SCRIPT, currentHost, node);
     }
 
     const serverUsedRam = ns.getServerUsedRam(node);
@@ -94,14 +101,18 @@ export async function main(ns) {
     const scriptArgs = [target];
 
     if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
-      ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, "error");
+      ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
     } else {
-      ns.toast(`Executing ${AGENT_SCRIPT} on: ${node}`, "success");
+      ns.toast(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
     }
   };
 
   const visited = new Set();
   const nuked = new Set();
+  /**
+   * @param {string} node
+   * @param {number} depth
+   */
   const traverse = (node, depth = 0) => {
     const scannedNodes = ns
       .scan(node)
@@ -114,7 +125,7 @@ export async function main(ns) {
     }
     for (const nextNode of scannedNodes) {
       if (visited.has(nextNode)) {
-        log(`Already traversed, skipping: ${nextNode}`, "warning");
+        log(`Already traversed, skipping: ${nextNode}`, 'warning');
         continue;
       }
       log(`Traversing: ${nextNode}`);
@@ -129,8 +140,8 @@ export async function main(ns) {
   };
 
   traverse(currentHost);
-  log(`Nuked: ${[...nuked]}`, "success");
-  await ns.write("nuked.txt", [...nuked], "w");
+  log(`Nuked: ${[...nuked]}`, 'success');
+  await ns.write('nuked.txt', [...nuked], 'w');
 
   const listOfTargetsSorted = () => {
     const sortedTargets = [];
@@ -144,19 +155,25 @@ export async function main(ns) {
   const arraySortedTargets = listOfTargetsSorted();
   const arraySortedTargets2 = [];
   let useFirst = true;
-  const fleet = [...nuked, ...ns.getPurchasedServers(), "home"]
+  const fleet = [...nuked, ...ns.getPurchasedServers(), 'home']
     .map((node) => ns.getServer(node))
-    .sort((a, b) => (a.serverMaxRam > b.serverMaxRam ? 1 : -1));
+    .sort((a, b) => (a.maxRam > b.maxRam ? 1 : -1));
 
-  log(`List of targets length : ${arraySortedTargets.length}`, "success");
+  log(`List of targets length : ${arraySortedTargets.length}`, 'success');
 
   for (const node of fleet) {
     if (useFirst) {
       const hostTemp = arraySortedTargets.shift();
+      if (hostTemp == null) {
+        continue;
+      }
       await pointAgentAtTarget(node.hostname, hostTemp.hostname);
       arraySortedTargets2.push(hostTemp);
     } else {
       const hostTemp = arraySortedTargets2.pop();
+      if (hostTemp == null) {
+        continue;
+      }
       await pointAgentAtTarget(node.hostname, hostTemp.hostname);
       arraySortedTargets.push(hostTemp);
     }

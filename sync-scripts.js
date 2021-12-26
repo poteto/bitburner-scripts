@@ -1,21 +1,25 @@
-import createLogger from "./create-logger.js";
+/**
+ * @typedef { import('./bitburner.d').NS } NS
+ */
 
-const IGNORE = new Set(["LICENSE", ".prettierrc.json"]);
+import createLogger from './create-logger.js';
+
+const IGNORE = new Set(['LICENSE', '.prettierrc.json']);
 const REPO_URL =
-  "https://api.github.com/repos/poteto/bitburner-scripts/git/trees/main?recursive=1";
-const REPO_TXT = "repo.json.txt";
+  'https://api.github.com/repos/poteto/bitburner-scripts/git/trees/main?recursive=1';
+const REPO_TXT = 'repo.json.txt';
 
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
-  ns.disableLog("disableLog");
-  ns.disableLog("wget");
+  ns.disableLog('disableLog');
+  ns.disableLog('wget');
 
   const log = createLogger(ns);
 
-  await ns.wget(REPO_URL, "repo.json.txt");
+  await ns.wget(REPO_URL, 'repo.json.txt');
   if (ns.fileExists(REPO_TXT) === false) {
-    log(`Couldn't get repo manifest`, "error");
+    log(`Couldn't get repo manifest`, 'error');
     ns.exit();
   }
 
