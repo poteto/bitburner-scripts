@@ -1,35 +1,44 @@
-import createLogger from "./create-logger.js";
+/**
+ * @typedef { import('./bitburner.d').NS } NS
+ * @typedef { import('./bitburner.d').Server } Server
+ *
+ * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
+ */
+
+import createLogger from './create-logger.js';
 import {
   AGENT_GROW_SCRIPT,
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
-} from "./manhattan.js";
+} from './manhattan.js';
 
-const FLEET_PREFIX = "fleet-node";
-const ROOT_NODE = "home";
+const FLEET_PREFIX = 'fleet-node';
+const ROOT_NODE = 'home';
 const INTERVAL = 12_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
-  ns.disableLog("disableLog");
-  ns.disableLog("getServerMoneyAvailable");
-  ns.disableLog("sleep");
-  ns.disableLog("getServerMaxRam");
-  ns.disableLog("deleteServer");
-  ns.disableLog("purchaseServer");
-  ns.disableLog("killall");
+  ns.disableLog('disableLog');
+  ns.disableLog('getServerMoneyAvailable');
+  ns.disableLog('sleep');
+  ns.disableLog('getServerMaxRam');
+  ns.disableLog('deleteServer');
+  ns.disableLog('purchaseServer');
+  ns.disableLog('killall');
 
   const log = createLogger(ns);
+  /** @param {number} cost */
   const insufficientFunds = (cost) =>
     log(
-      `Need: ${ns.nFormat(cost, "($0.00a)")}, have: ${ns.nFormat(
+      `Need: ${ns.nFormat(cost, '($0.00a)')}, have: ${ns.nFormat(
         ns.getServerMoneyAvailable(ROOT_NODE),
-        "($0.00a)"
+        '($0.00a)'
       )}`,
-      "warning"
+      'warning'
     );
-  const getExponent = (x) => Math.ceil(Math.log(x) / Math.log(2));
+  /** @param {number} n */
+  const getExponent = (n) => Math.ceil(Math.log(n) / Math.log(2));
 
   const maxFleetRam = ns.getPurchasedServerMaxRam();
   const fleetLimit = ns.getPurchasedServerLimit();
@@ -49,7 +58,7 @@ export async function main(ns) {
       await ns.sleep(INTERVAL);
     }
     if (ns.purchaseServer(nextServerName, firstMachineRam) === nextServerName) {
-      log(`Succesfully purchased ${nextServerName}`, "success");
+      log(`Succesfully purchased ${nextServerName}`, 'success');
     }
   }
 
@@ -65,7 +74,7 @@ export async function main(ns) {
     log(`Found lowest RAM: ${lowestRam}`);
 
     if (lowestRam === maxFleetRam) {
-      log("Successfully maxed out fleet, exiting script", "success");
+      log('Successfully maxed out fleet, exiting script', 'success');
       ns.exit();
     }
 
@@ -82,15 +91,15 @@ export async function main(ns) {
         await ns.sleep(INTERVAL);
       }
       while (ns.ps(server).length > 0) {
-        log(`Can't upgrade ${server} as there are scripts running`, "warning");
+        log(`Can't upgrade ${server} as there are scripts running`, 'warning');
         await ns.sleep(INTERVAL);
       }
       ns.killall(server);
       if (ns.deleteServer(server) === false) {
-        throw new Error("Should never get here");
+        throw new Error('Should never get here');
       }
       if (ns.purchaseServer(server, nextRam) === server) {
-        log(`Successfully upgraded ${server} to ${nextRam}GB RAM`, "success");
+        log(`Successfully upgraded ${server} to ${nextRam}GB RAM`, 'success');
       }
     }
   }

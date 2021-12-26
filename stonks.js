@@ -1,17 +1,23 @@
-import createLogger from "./create-logger.js";
+/**
+ * @typedef { import('./bitburner.d').NS } NS
+ */
+
+import createLogger from './create-logger.js';
 
 const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
-  ns.disableLog("disableLog");
-  ns.disableLog("sleep");
+  ns.disableLog('disableLog');
+  ns.disableLog('sleep');
 
   const log = createLogger(ns);
   const symbols = ns.stock.getSymbols();
 
-  const formatMoney = (x) => ns.nFormat(x, "($0.00a)");
+  /** @param {number} n */
+  const formatMoney = (n) => ns.nFormat(n, '($0.00a)');
+  /** @param {string} sym */
   const report = (sym) => {
     log(`--- Report for ${sym} ---`);
     log(`  Ask       : ${ns.stock.getAskPrice(sym)}`);
@@ -35,7 +41,7 @@ export async function main(ns) {
             askPrice * maxShares
           )}`
         );
-        bought.set(sym, { kind: "Long", askPrice, volume: maxShares });
+        bought.set(sym, { kind: 'Long', askPrice, volume: maxShares });
         totalSpent += askPrice * maxShares;
       }
       if (bought.has(sym) === false) {

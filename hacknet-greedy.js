@@ -1,12 +1,14 @@
-import createLogger from "./create-logger.js";
-
 /**
  * Greedy hacknet purchasing algorithm. Polls indefinitely until the script is killed.
  * This script will attempt to purchase the cheapest possible upgrade (new node, level,
  * RAM, core) and will fully deplenish your surplus money as and when the cheapest
  * upgrade can be purchased. If you are trying to build a surplus you should kill the
  * script and let it build up.
+ *
+ * @typedef { import('./bitburner.d').NS } NS
  */
+
+import createLogger from './create-logger.js';
 
 const LEVEL_INCREMENT = 20;
 const RAM_INCREMENT = 1;
@@ -16,22 +18,24 @@ const INTERVAL = 12_000;
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
-  ns.disableLog("disableLog");
-  ns.disableLog("getServerMoneyAvailable");
-  ns.disableLog("sleep");
+  ns.disableLog('disableLog');
+  ns.disableLog('getServerMoneyAvailable');
+  ns.disableLog('sleep');
 
   const log = createLogger(ns);
+  /** @param {number} cost */
   const insufficientFunds = async (cost) =>
     log(
-      `Need: ${ns.nFormat(cost, "($0.00a)")}, have: ${ns.nFormat(
-        ns.getServerMoneyAvailable("home"),
-        "($0.00a)"
+      `Need: ${ns.nFormat(cost, '($0.00a)')}, have: ${ns.nFormat(
+        ns.getServerMoneyAvailable('home'),
+        '($0.00a)'
       )}`,
-      "warning"
+      'warning'
     );
 
   while (true) {
     const numNodes = ns.hacknet.numNodes();
+    /** @type {{cost: number, name: string | null, index: number | null}} */
     let cheapest = {
       cost: Infinity,
       name: null,
@@ -39,7 +43,7 @@ export async function main(ns) {
     };
 
     if (numNodes === 0) {
-      log(`Successfully purchased hacknet-node-0`, "success");
+      log(`Successfully purchased hacknet-node-0`, 'success');
       ns.hacknet.purchaseNode();
     }
 
@@ -64,43 +68,43 @@ export async function main(ns) {
       log(
         `Found cheapest upgrade: hacknet-node-${cheapest.index}, ${cheapest.name}`
       );
-      while (ns.getServerMoneyAvailable("home") < cheapest.cost) {
+      while (ns.getServerMoneyAvailable('home') < cheapest.cost) {
         await insufficientFunds(cheapest.cost);
         await ns.sleep(INTERVAL);
       }
       switch (cheapest.name) {
-        case "node":
-          if (ns.hacknet.purchaseNode() === true) {
-            log(`Successfully purchased hacknet-node-${index}`, "success");
+        case 'node':
+          if (ns.hacknet.purchaseNode() !== -1) {
+            log(`Successfully purchased hacknet-node-${cheapest.index}`, 'success');
           }
           break;
-        case "level":
+        case 'level':
           if (ns.hacknet.upgradeLevel(cheapest.index, LEVEL_INCREMENT)) {
             log(
               `Successfully upgraded hacknet-node-${cheapest.index} level`,
-              "success"
+              'success'
             );
           }
           break;
-        case "ram":
+        case 'ram':
           if (ns.hacknet.upgradeRam(cheapest.index, RAM_INCREMENT)) {
             log(
               `Successfully upgraded hacknet-node-${cheapest.index} RAM`,
-              "success"
+              'success'
             );
           }
           break;
-        case "core":
+        case 'core':
           if (ns.hacknet.upgradeCore(cheapest.index, CORE_INCREMENT)) {
             log(
               `Successfully upgraded hacknet-node-${cheapest.index} cores`,
-              "success"
+              'success'
             );
           }
           break;
         default:
           throw new Error(
-            `Unknown upgrade ${cheapest.name} for hacknet-node-${cheapest.node}`
+            `Unknown upgrade ${cheapest.name} for hacknet-node-${cheapest.index}`
           );
       }
     }

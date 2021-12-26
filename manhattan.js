@@ -149,9 +149,7 @@ export async function main(ns) {
   const getHackTime = (destination) =>
     Math.ceil(ns.getHackTime(destination.hostname));
 
-  /**
-   * @param {Server} destination
-   */
+  /** @param {Server} destination */
   const report = (destination) => {
     const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
     const moneyMax = ns.getServerMaxMoney(destination.hostname);
@@ -220,9 +218,7 @@ export async function main(ns) {
 
     return ns.hasRootAccess(server.hostname);
   };
-  /**
-   * @param {Set<string>} nukedHostnames
-   */
+  /** @param {Set<string>} nukedHostnames */
   const installAgents = async (nukedHostnames) => {
     for (const server of getControlledServers(nukedHostnames)) {
       if (isHome(server.hostname)) {
