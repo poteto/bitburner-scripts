@@ -1,37 +1,75 @@
 /**
  * @typedef { import('./bitburner.d').NS } NS
- */
+ * @typedef {{path: string, mode: string, type: 'tree' | 'blob', sha: string, url: string}} File
+ * @typedef {{sha: string, url: string, tree: File[], truncated: boolean}} Repo
+ * @typedef {{branch: string, watch: boolean}} ScriptOptions
+ * */
 
 import createLogger from './create-logger.js';
 
-const REPO_URL =
-  'https://api.github.com/repos/poteto/bitburner-scripts/git/trees/main?recursive=1';
-const REPO_TXT = 'repo.json.txt';
+const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
   ns.tail();
   ns.disableLog('disableLog');
   ns.disableLog('wget');
+  ns.disableLog('sleep');
+  ns.disableLog('exit');
 
   const log = createLogger(ns);
+  /** @type {ScriptOptions} */
+  const { branch, watch } = ns.flags([
+    ['branch', 'main'], // which branch to pull from
+    ['watch', false], // enable watch mode
+  ]);
 
-  await ns.wget(REPO_URL, 'repo.json.txt');
-  if (ns.fileExists(REPO_TXT) === false) {
-    log(`Couldn't get repo manifest`, 'error');
-    ns.exit();
-  }
+  /**
+   * @param {string} branch
+   * @param {string} manifestName
+   * @returns {Promise<Repo | null>}
+   */
+  const fetchRepo = async (branch, manifestName) => {
+    const repoUrl = `https://api.github.com/repos/poteto/bitburner-scripts/git/trees/${branch}?recursive=1`;
+    if (await ns.wget(repoUrl, manifestName)) {
+      return JSON.parse(ns.read(manifestName));
+    }
+    return null;
+  };
+  /**
+   * @param {Repo} repo
+   * @param {string} branch
+   */
+  const fetchFiles = async (repo, branch) => {
+    for (const file of repo.tree) {
+      if (file.type !== 'blob' || file.path.endsWith('.js') === false) {
+        continue;
+      }
+      const fileUrl = `https://raw.githubusercontent.com/poteto/bitburner-scripts/${branch}/${file.path}`;
+      if (await ns.wget(fileUrl, file.path)) {
+        log(`Synced ${file.path} (${file.sha})`, 'success');
+        continue;
+      }
+      log(`Couldn't get ${file.path}`, 'error');
+    }
+  };
 
-  const repo = JSON.parse(ns.read(REPO_TXT));
-  for (const file of repo.tree) {
-    if (file.type !== 'blob' || file.path.endsWith('.js') === false) {
-      continue;
+  let lastRepoSha = null;
+  while (true) {
+    const repo = await fetchRepo(branch, 'repo.json.txt');
+    if (repo == null) {
+      log(`Couldn't get repo manifest`, 'error');
+      return ns.exit();
     }
-    const url = `https://raw.githubusercontent.com/poteto/bitburner-scripts/main/${file.path}`;
-    if (await ns.wget(url, file.path)) {
-      log(`Successfully synced ${file.path} (${file.sha})`);
-    } else {
-      log(`Couldn't get ${file.path} (${file.sha})`);
+    if (lastRepoSha !== repo.sha) {
+      await fetchFiles(repo, branch);
+      lastRepoSha = repo.sha;
+      log(`Sync for branch ${branch} completed at: ${new Date().toLocaleString()}`, 'success');
     }
+    if (watch === false) {
+      return ns.exit();
+    }
+    log('Watching for changes...');
+    await ns.sleep(INTERVAL);
   }
 }
