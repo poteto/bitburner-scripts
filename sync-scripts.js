@@ -47,7 +47,7 @@ export async function main(ns) {
       }
       const fileUrl = `https://raw.githubusercontent.com/poteto/bitburner-scripts/${branch}/${file.path}`;
       if (await ns.wget(fileUrl, file.path)) {
-        log(`Successfully synced ${file.path} (${file.sha})`);
+        log(`Successfully synced ${file.path} (${file.sha})`, 'success');
         continue;
       }
       log(`Couldn't get ${file.path}`, 'error');
