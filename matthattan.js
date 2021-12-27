@@ -139,7 +139,7 @@ export async function main(ns) {
    * @param {string} node
    * @param {string} target
    */
-  const pointAgentAtTarget = async (node, target) => {
+  const pointAgentAtTarget = (node, target) => {
     if (
       ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target)
     ) {
@@ -205,14 +205,14 @@ export async function main(ns) {
         if (hostTemp == null) {
           continue;
         }
-        await pointAgentAtTarget(node.hostname, hostTemp.hostname);
+        pointAgentAtTarget(node.hostname, hostTemp.hostname);
         arraySortedTargets2.push(hostTemp);
       } else {
         const hostTemp = arraySortedTargets2.pop();
         if (hostTemp == null) {
           continue;
         }
-        await pointAgentAtTarget(node.hostname, hostTemp.hostname);
+        pointAgentAtTarget(node.hostname, hostTemp.hostname);
         arraySortedTargets.push(hostTemp);
       }
 
