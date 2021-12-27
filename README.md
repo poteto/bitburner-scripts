@@ -14,7 +14,11 @@ run sync-scripts.js
 ```
 
 ### Development
-Bitburner type declarations are synced from the official repo, but scripts are authored in JS with JSDoc comments for types to avoid the need for a build step.
+Bitburner type declarations are synced from the official repo, but scripts are authored in JS with JSDoc comments for types to avoid the need for a build step. During development it may be helpful to watch for changes and sync in progress changes:
+
+```sh
+run sync-scripts.js --branch=mybranch --watch=true
+```
 
 ## License
 
