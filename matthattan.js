@@ -121,7 +121,7 @@ export async function main(ns) {
       return;
     }
     const scriptArgs = [target, '0'];
-    return ns.exec(script, node, threadsAvailable, ...scriptArgs) === 0;
+    return ns.exec(script, node, threadsAvailable, ...scriptArgs);
   };
 
   /** @param {Server} server */
