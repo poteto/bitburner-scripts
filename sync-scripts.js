@@ -15,6 +15,7 @@ export async function main(ns) {
   ns.disableLog('disableLog');
   ns.disableLog('wget');
   ns.disableLog('sleep');
+  ns.disableLog('exit');
 
   const log = createLogger(ns);
   /** @type {ScriptOptions} */
