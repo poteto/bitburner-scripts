@@ -14,6 +14,7 @@ export async function main(ns) {
   ns.tail();
   ns.disableLog('disableLog');
   ns.disableLog('wget');
+  ns.disableLog('sleep');
 
   const log = createLogger(ns);
   /** @type {ScriptOptions} */
@@ -52,16 +53,21 @@ export async function main(ns) {
     }
   };
 
+  let lastRepoSha = null;
   while (true) {
     const repo = await fetchRepo(branch, 'repo.json.txt');
     if (repo == null) {
       log(`Couldn't get repo manifest`, 'error');
       return ns.exit();
     }
-    await fetchFiles(repo, branch);
+    if (lastRepoSha !== repo.sha) {
+      await fetchFiles(repo, branch);
+      lastRepoSha = repo.sha;
+    }
     if (watch === false) {
       return ns.exit();
     }
+    log('Watching for changes...');
     await ns.sleep(INTERVAL);
   }
 }
