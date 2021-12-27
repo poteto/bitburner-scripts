@@ -47,7 +47,7 @@ export async function main(ns) {
       }
       const fileUrl = `https://raw.githubusercontent.com/poteto/bitburner-scripts/${branch}/${file.path}`;
       if (await ns.wget(fileUrl, file.path)) {
-        log(`Successfully synced ${file.path} (${file.sha})`, 'success');
+        log(`Synced ${file.path} (${file.sha})`, 'success');
         continue;
       }
       log(`Couldn't get ${file.path}`, 'error');
@@ -64,7 +64,7 @@ export async function main(ns) {
     if (lastRepoSha !== repo.sha) {
       await fetchFiles(repo, branch);
       lastRepoSha = repo.sha;
-      log(`Synced at: ${new Date().toLocaleTimeString()}`);
+      log(`Sync completed at: ${new Date().toLocaleString()}`, 'success');
     }
     if (watch === false) {
       return ns.exit();
