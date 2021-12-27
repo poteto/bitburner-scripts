@@ -30,11 +30,25 @@ export async function main(ns) {
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
 
-  /** @param {string} node */
-  const isHome = (node) => node === ROOT_NODE;
+  /**
+   * @param {string} hostname
+   * @returns {boolean}
+   */
+  const isHome = (hostname) => hostname === ROOT_NODE;
+  /**
+   * @param {string} hostname
+   * @returns {boolean}
+   */
+  const isFleet = (hostname) => hostname.startsWith(FLEET_PREFIX);
+  /**
+   * @param {string} hostname
+   * @returns {boolean}
+   */
+  const isOwned = (hostname) => isHome(hostname) || isFleet(hostname);
+
   /** @param {string} node */
   const tryNuke = (node) => {
-    if (isHome(node)) {
+    if (isOwned(node)) {
       return false;
     }
     const user = ns.getPlayer();
@@ -73,7 +87,6 @@ export async function main(ns) {
     }
 
     if (server.backdoorInstalled === false) {
-      log(`${server.hostname} can be backdoored`, 'warning');
       // ns.installBackdoor(hostname);
     }
 
@@ -101,47 +114,34 @@ export async function main(ns) {
     const scriptArgs = [target];
 
     if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
-      ns.toast(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
+      log(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
     } else {
-      ns.toast(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
+      log(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
     }
   };
 
+  /** @type {Set<string>} */
   const visited = new Set();
+  /** @type {Set<string>} */
   const nuked = new Set();
   /**
    * @param {string} node
    * @param {number} depth
    */
   const traverse = (node, depth = 0) => {
-    const scannedNodes = ns
-      .scan(node)
-      .filter(
-        (nextNode) =>
-          nextNode !== ROOT_NODE && !nextNode.startsWith(FLEET_PREFIX)
-      );
-    if (scannedNodes.length) {
-      log(`Found: ${scannedNodes} at depth: ${depth}`);
-    }
-    for (const nextNode of scannedNodes) {
-      if (visited.has(nextNode)) {
-        log(`Already traversed, skipping: ${nextNode}`, 'warning');
+    for (const nextNode of ns.scan(node)) {
+      if (isOwned(node) || visited.has(node)) {
         continue;
       }
-      log(`Traversing: ${nextNode}`);
       visited.add(nextNode);
       if (tryNuke(nextNode) === true) {
         nuked.add(nextNode);
-      } else {
-        log(`Couldn't nuke: ${nextNode}`);
       }
       traverse(nextNode, depth + 1);
     }
   };
 
   traverse(currentHost);
-  log(`Nuked: ${[...nuked]}`, 'success');
-  await ns.write('nuked.txt', [...nuked], 'w');
 
   const listOfTargetsSorted = () => {
     const sortedTargets = [];
@@ -149,17 +149,15 @@ export async function main(ns) {
       const node = ns.getServer(nukedNode);
       sortedTargets.push(node);
     }
-    return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax).slice(0, 24);
+    return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax);
   };
 
   const arraySortedTargets = listOfTargetsSorted();
   const arraySortedTargets2 = [];
   let useFirst = true;
-  const fleet = [...nuked, ...ns.getPurchasedServers(), 'home']
+  const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
-    .sort((a, b) => (a.maxRam > b.maxRam ? 1 : -1));
-
-  log(`List of targets length : ${arraySortedTargets.length}`, 'success');
+    .sort((a, b) => b.maxRam - a.maxRam);
 
   for (const node of fleet) {
     if (useFirst) {
@@ -178,11 +176,11 @@ export async function main(ns) {
       arraySortedTargets.push(hostTemp);
     }
 
-    if (arraySortedTargets.length == 0) {
+    if (arraySortedTargets.length === 0) {
       useFirst = false;
     }
 
-    if (arraySortedTargets2.length == 0) {
+    if (arraySortedTargets2.length === 0) {
       useFirst = true;
     }
   }
