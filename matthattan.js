@@ -26,6 +26,12 @@ export async function main(ns) {
   ns.disableLog('rm');
   ns.disableLog('getServerSecurityLevel');
   ns.disableLog('kill');
+  ns.disableLog('nuke');
+  ns.disableLog('brutessh');
+  ns.disableLog('ftpcrack');
+  ns.disableLog('relaysmtp');
+  ns.disableLog('httpworm');
+  ns.disableLog('sqlinject');
 
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
@@ -157,7 +163,7 @@ export async function main(ns) {
   let useFirst = true;
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
-    .sort((a, b) => b.maxRam - a.maxRam);
+    .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
 
   for (const node of fleet) {
     if (useFirst) {
