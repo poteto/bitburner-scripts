@@ -74,8 +74,9 @@ export async function main(ns) {
       }
       switch (cheapest.name) {
         case 'node':
-          if (ns.hacknet.purchaseNode() !== -1) {
-            log(`Successfully purchased hacknet-node-${cheapest.index}`, 'success');
+          const nextNodeIndex = ns.hacknet.purchaseNode();
+          if (nextNodeIndex !== -1) {
+            log(`Successfully purchased hacknet-node-${nextNodeIndex}`, 'success');
           }
           break;
         case 'level':
