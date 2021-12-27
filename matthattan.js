@@ -122,7 +122,7 @@ export async function main(ns) {
     const availableRam = ns.getServerMaxRam(node) - ns.getServerUsedRam(node);
     const threadsAvailable = Math.floor(availableRam / ns.getScriptRam(script));
     if (threadsAvailable === 0) {
-      return;
+      return 0;
     }
     const scriptArgs = [target, '0'];
     return ns.exec(script, node, threadsAvailable, ...scriptArgs);
@@ -147,18 +147,21 @@ export async function main(ns) {
     if (
       ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target)
     ) {
-      log(`Weakening ${target} with ${node}`);
-      execScript(node, target, AGENT_WEAK_SCRIPT);
+      if (execScript(node, target, AGENT_WEAK_SCRIPT) !== 0) {
+        log(`Weakening ${target} with ${node}`);
+      }
     }
 
     if (ns.getServerMoneyAvailable(target) < ns.getServerMaxMoney(target)) {
-      log(`Growing ${target} with ${node}`);
-      execScript(node, target, AGENT_GROW_SCRIPT);
+      if (execScript(node, target, AGENT_GROW_SCRIPT) !== 0) {
+        log(`Growing ${target} with ${node}`);
+      }
     }
 
     if (ns.getServerMoneyAvailable(target) === ns.getServerMaxMoney(target)) {
-      log(`Hacking ${target} with ${node}`);
-      execScript(node, target, AGENT_HACK_SCRIPT);
+      if (execScript(node, target, AGENT_HACK_SCRIPT) !== 0) {
+        log(`Hacking ${target} with ${node}`);
+      }
     }
   };
 
