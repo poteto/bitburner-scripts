@@ -64,8 +64,8 @@ export async function main(ns) {
 
   while (true) {
     let lowestRam = Infinity;
-    for (const server of ns.getPurchasedServers()) {
-      const currentRam = ns.getServerMaxRam(server);
+    for (const hostname of ns.getPurchasedServers()) {
+      const currentRam = ns.getServerMaxRam(hostname);
       if (currentRam < lowestRam) {
         lowestRam = currentRam;
       }
@@ -78,28 +78,28 @@ export async function main(ns) {
       ns.exit();
     }
 
-    for (const server of ns.getPurchasedServers()) {
-      const currentRam = ns.getServerMaxRam(server);
+    for (const hostname of ns.getPurchasedServers()) {
+      const currentRam = ns.getServerMaxRam(hostname);
       const nextRam = Math.pow(2, getExponent(lowestRam) + 1);
       if (currentRam !== lowestRam) {
         continue;
       }
-      log(`Attempting to upgrade ${server} to ${nextRam}GB RAM`);
+      log(`Attempting to upgrade ${hostname} to ${nextRam}GB RAM`);
       const cost = ns.getPurchasedServerCost(nextRam);
       while (ns.getServerMoneyAvailable(ROOT_NODE) < cost) {
         insufficientFunds(cost);
         await ns.sleep(INTERVAL);
       }
-      while (ns.ps(server).length > 0) {
-        log(`Can't upgrade ${server} as there are scripts running`, 'warning');
+      while (ns.ps(hostname).length > 0) {
+        log(`Can't upgrade ${hostname} as there are scripts running`, 'warning');
         await ns.sleep(INTERVAL);
       }
-      ns.killall(server);
-      if (ns.deleteServer(server) === false) {
+      ns.killall(hostname);
+      if (ns.deleteServer(hostname) === false) {
         throw new Error('Should never get here');
       }
-      if (ns.purchaseServer(server, nextRam) === server) {
-        log(`Successfully upgraded ${server} to ${nextRam}GB RAM`, 'success');
+      if (ns.purchaseServer(hostname, nextRam) === hostname) {
+        log(`Successfully upgraded ${hostname} to ${nextRam}GB RAM`, 'success');
       }
     }
   }
