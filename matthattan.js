@@ -21,7 +21,7 @@ const AGENT_PAYLOAD = new Set([
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
 ]);
-export const AGENT_SCRIPT = 'agent-allinone.js';
+const INTERVAL = 3_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -196,9 +196,7 @@ export async function main(ns) {
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
     .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
-  for (const node of fleet) {
-    await installAgents(node);
-  }
+  fleet.forEach(async (node) => await installAgents(node));
 
   while (true) {
     for (const node of fleet) {
@@ -226,5 +224,6 @@ export async function main(ns) {
         useFirst = true;
       }
     }
+    await ns.sleep(INTERVAL);
   }
 }
