@@ -130,7 +130,7 @@ export async function main(ns) {
    */
   const traverse = (node, depth = 0) => {
     for (const nextNode of ns.scan(node)) {
-      if (isOwned(node) || visited.has(node)) {
+      if (isOwned(nextNode) || visited.has(nextNode)) {
         continue;
       }
       visited.add(nextNode);
