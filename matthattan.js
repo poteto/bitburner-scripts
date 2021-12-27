@@ -4,12 +4,23 @@
  * AGENT_SCRIPT which makes use of the nuked server to hack the most efficient server.
  *
  * @typedef { import('./bitburner.d').NS } NS
+ * @typedef { import('./bitburner.d').Server } Server
+ * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
  */
 
 import createLogger from './create-logger.js';
 
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
+export const AGENT_GROW_SCRIPT = 'agent-grow.js';
+export const AGENT_HACK_SCRIPT = 'agent-hack.js';
+export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
+/** @type {Set<AgentScript>} */
+const AGENT_PAYLOAD = new Set([
+  AGENT_GROW_SCRIPT,
+  AGENT_HACK_SCRIPT,
+  AGENT_WEAK_SCRIPT,
+]);
 export const AGENT_SCRIPT = 'agent-allinone.js';
 
 /** @param {NS} ns **/
@@ -101,28 +112,46 @@ export async function main(ns) {
   /**
    * @param {string} node
    * @param {string} target
+   * @param {AgentScript} script
+   */
+  const execScript = (node, target, script) => {
+    const availableRam = ns.getServerMaxRam(node) - ns.getServerUsedRam(node);
+    const threadsAvailable = Math.floor(availableRam / ns.getScriptRam(script));
+    if (threadsAvailable === 0) {
+      return;
+    }
+    const scriptArgs = [target, '0'];
+    return ns.exec(script, node, threadsAvailable, ...scriptArgs) === 0;
+  };
+
+  /** @param {Server} server */
+  const installAgents = async ({ hostname }) => {
+    for (const script of AGENT_PAYLOAD) {
+      ns.scriptKill(script, hostname);
+      if (isHome(hostname)) {
+        continue;
+      }
+      ns.rm(script, hostname);
+      await ns.scp(script, currentHost, hostname);
+    }
+  };
+  /**
+   * @param {string} node
+   * @param {string} target
    */
   const pointAgentAtTarget = async (node, target) => {
-    ns.kill(AGENT_SCRIPT, node, target);
-    if (!isHome(node)) {
-      ns.killall(node);
-      ns.rm(AGENT_SCRIPT, node);
-      await ns.scp(AGENT_SCRIPT, currentHost, node);
+    if (
+      ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target)
+    ) {
+      execScript(node, target, AGENT_WEAK_SCRIPT);
     }
 
-    const serverUsedRam = ns.getServerUsedRam(node);
-    const serverMaxRam = ns.getServerMaxRam(node);
-    const availableRam = serverMaxRam - serverUsedRam;
-    const threads = Math.max(
-      Math.floor(availableRam / ns.getScriptRam(AGENT_SCRIPT)),
-      1
-    );
-    const scriptArgs = [target];
+    if (ns.getServerMoneyAvailable(target) < ns.getServerMaxMoney(target)) {
+      execScript(node, target, AGENT_GROW_SCRIPT);
+    }
 
-    if (ns.exec(AGENT_SCRIPT, node, threads, ...scriptArgs) === 0) {
-      log(`Failed to execute ${AGENT_SCRIPT} on: ${node}`, 'error');
-    } else {
-      log(`Executing ${AGENT_SCRIPT} on: ${node}`, 'success');
+    if (ns.getServerMoneyAvailable(target) === ns.getServerMaxMoney(target)) {
+      execScript(node, target, AGENT_HACK_SCRIPT);
     }
   };
 
@@ -167,30 +196,33 @@ export async function main(ns) {
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
     .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
+  fleet.forEach(async (node) => await installAgents(node));
 
-  for (const node of fleet) {
-    if (useFirst) {
-      const hostTemp = arraySortedTargets.shift();
-      if (hostTemp == null) {
-        continue;
+  while (true) {
+    for (const node of fleet) {
+      if (useFirst) {
+        const hostTemp = arraySortedTargets.shift();
+        if (hostTemp == null) {
+          continue;
+        }
+        await pointAgentAtTarget(node.hostname, hostTemp.hostname);
+        arraySortedTargets2.push(hostTemp);
+      } else {
+        const hostTemp = arraySortedTargets2.pop();
+        if (hostTemp == null) {
+          continue;
+        }
+        await pointAgentAtTarget(node.hostname, hostTemp.hostname);
+        arraySortedTargets.push(hostTemp);
       }
-      await pointAgentAtTarget(node.hostname, hostTemp.hostname);
-      arraySortedTargets2.push(hostTemp);
-    } else {
-      const hostTemp = arraySortedTargets2.pop();
-      if (hostTemp == null) {
-        continue;
+
+      if (arraySortedTargets.length === 0) {
+        useFirst = false;
       }
-      await pointAgentAtTarget(node.hostname, hostTemp.hostname);
-      arraySortedTargets.push(hostTemp);
-    }
 
-    if (arraySortedTargets.length === 0) {
-      useFirst = false;
-    }
-
-    if (arraySortedTargets2.length === 0) {
-      useFirst = true;
+      if (arraySortedTargets2.length === 0) {
+        useFirst = true;
+      }
     }
   }
 }
