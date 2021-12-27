@@ -7,7 +7,7 @@
 
 import createLogger from './create-logger.js';
 
-const INTERVAL = 12_000;
+const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
