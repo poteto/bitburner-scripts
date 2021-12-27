@@ -196,7 +196,9 @@ export async function main(ns) {
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
     .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
-  fleet.forEach(async (node) => await installAgents(node));
+  for (const node of fleet) {
+    await installAgents(node);
+  }
 
   while (true) {
     for (const node of fleet) {
