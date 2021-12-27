@@ -153,6 +153,9 @@ export async function main(ns) {
     const sortedTargets = [];
     for (const nukedNode of nuked) {
       const node = ns.getServer(nukedNode);
+      if (node.moneyMax === 0) {
+        continue;
+      }
       sortedTargets.push(node);
     }
     return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax);
