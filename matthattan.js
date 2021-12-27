@@ -36,6 +36,9 @@ export async function main(ns) {
   ns.disableLog('exec');
   ns.disableLog('rm');
   ns.disableLog('getServerSecurityLevel');
+  ns.disableLog('getServerMinSecurityLevel');
+  ns.disableLog('getServerMaxMoney');
+  ns.disableLog('getServerMoneyAvailable');
   ns.disableLog('kill');
   ns.disableLog('nuke');
   ns.disableLog('brutessh');
@@ -43,6 +46,7 @@ export async function main(ns) {
   ns.disableLog('relaysmtp');
   ns.disableLog('httpworm');
   ns.disableLog('sqlinject');
+  ns.disableLog('sleep');
 
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
@@ -143,14 +147,17 @@ export async function main(ns) {
     if (
       ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target)
     ) {
+      log(`Weakening ${target} with ${node}`);
       execScript(node, target, AGENT_WEAK_SCRIPT);
     }
 
     if (ns.getServerMoneyAvailable(target) < ns.getServerMaxMoney(target)) {
+      log(`Growing ${target} with ${node}`);
       execScript(node, target, AGENT_GROW_SCRIPT);
     }
 
     if (ns.getServerMoneyAvailable(target) === ns.getServerMaxMoney(target)) {
+      log(`Hacking ${target} with ${node}`);
       execScript(node, target, AGENT_HACK_SCRIPT);
     }
   };
@@ -196,7 +203,9 @@ export async function main(ns) {
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
     .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
-  fleet.forEach(async (node) => await installAgents(node));
+  for (const node of fleet) {
+    await installAgents(node);
+  }
 
   while (true) {
     for (const node of fleet) {
