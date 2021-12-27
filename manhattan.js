@@ -240,7 +240,8 @@ export async function main(ns) {
     for (const server of getControlledServers(nukedHostnames)) {
       for (const process of ns.ps(server.hostname)) {
         if (process.filename === script) {
-          ns.scriptKill(process.filename, server.hostname);
+          process.args.splice(0, 1, destination.hostname);
+          ns.kill(process.filename, server.hostname, ...process.args);
         }
       }
     }
