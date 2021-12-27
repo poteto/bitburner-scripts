@@ -64,7 +64,7 @@ export async function main(ns) {
     if (lastRepoSha !== repo.sha) {
       await fetchFiles(repo, branch);
       lastRepoSha = repo.sha;
-      log(`Sync completed at: ${new Date().toLocaleString()}`, 'success');
+      log(`Sync for branch ${branch} completed at: ${new Date().toLocaleString()}`, 'success');
     }
     if (watch === false) {
       return ns.exit();
