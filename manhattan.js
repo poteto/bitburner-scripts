@@ -368,7 +368,7 @@ export async function main(ns) {
       log(
         `  ↳ Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} threads in ${ns.tFormat(currentTimeTaken)}, 'success`
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -409,9 +409,15 @@ export async function main(ns) {
         break;
       }
       log(
+        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
+          weakensRemaining
+        )} threads in ${ns.tFormat(getWeakTime(destination))}`
+      );
+      log(
         `  ↳ Growing ${destination.hostname} with ${formatThreads(
           growsRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} threads in ${ns.tFormat(getGrowTime(destination))}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -459,9 +465,15 @@ export async function main(ns) {
         break;
       }
       log(
+        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
+          weakensRemaining
+        )} threads in ${ns.tFormat(getWeakTime(destination))}`
+      );
+      log(
         `  ↳ Hacking ${destination.hostname} with ${formatThreads(
           hacksRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} threads in ${ns.tFormat(getHackTime(destination))}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
