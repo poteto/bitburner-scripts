@@ -28,6 +28,16 @@ Loop,
   Sleep, 90200
 }
 
+^4::
+CoordMode, mouse, Screen
+Loop,
+{
+  Send {Click, 366, 300} ; Deal Drugs
+  Sleep, 200
+  Send {Click, 366, 300}
+  Sleep, 10200
+}
+
 ^!p::Pause    ; Pause script with Ctrl+Alt+P
 ^!s::Suspend  ; Suspend script with Ctrl+Alt+S
 ^!r::Reload   ; Reload script with Ctrl+Alt+R
