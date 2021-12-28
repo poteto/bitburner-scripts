@@ -409,14 +409,11 @@ export async function main(ns) {
         break;
       }
       log(
-        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
-          weakensRemaining
-        )} threads in ${ns.tFormat(getWeakTime(destination))}`
-      );
-      log(
         `  ↳ Growing ${destination.hostname} with ${formatThreads(
           growsRemaining
-        )} threads in ${ns.tFormat(getGrowTime(destination))}`,
+        )} grow threads and ${weakensRemaining} weak threads in ${ns.tFormat(
+          currentTimeTaken
+        )}`,
         'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
@@ -465,14 +462,11 @@ export async function main(ns) {
         break;
       }
       log(
-        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
-          weakensRemaining
-        )} threads in ${ns.tFormat(getWeakTime(destination))}`
-      );
-      log(
         `  ↳ Hacking ${destination.hostname} with ${formatThreads(
           hacksRemaining
-        )} threads in ${ns.tFormat(getHackTime(destination))}`,
+        )} hack threads and ${weakensRemaining} weak threads in ${ns.tFormat(
+          currentTimeTaken
+        )}`,
         'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
