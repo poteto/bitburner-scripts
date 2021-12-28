@@ -52,4 +52,4 @@ jobs:
         with:
           # comment message
           message: |
-            Test this out locally with `run sync-scripts --branch=${${{ github.head_ref }}}`
+            To test this out locally: \n\n```run sync-scripts --branch=${{ github.head_ref }}```
