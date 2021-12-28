@@ -336,7 +336,10 @@ export async function main(ns) {
       }
       // Only a single instance of a script for a given set of args can be run at a time. To get
       // around this, bump instanceId by 1.
-      id = (Number(instanceId) + 1).toString();
+      const newId = Number(instanceId) + 1;
+      if (newId > Number(id)) {
+        id = newId.toString();
+      }
       break;
     }
     if (
