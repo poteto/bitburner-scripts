@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Sync bitburner types
+      - name: Sync Bitburner Types
         run: |
           curl https://raw.githubusercontent.com/danielyxie/bitburner/dev/dist/bitburner.d.ts -O
           git add .
@@ -42,3 +42,20 @@ jobs:
           github_token: ${{ secrets.PAT }}
           # Commit message.
           message: Sync bitburner types
+
+      - name: Sticky Pull Request Comment
+        uses: marocchino/sticky-pull-request-comment@v2.2.0
+        with:
+          # comment message
+          message: |
+            To test this out locally:
+            
+            ```
+            run sync-scripts.js --branch=${{ github.head_ref }}
+            ```
+            
+            To watch for changes:
+            
+            ```
+            run sync-scripts.js --branch=${{ github.head_ref }} --watch
+            ```
