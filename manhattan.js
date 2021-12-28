@@ -103,7 +103,7 @@ export async function main(ns) {
     if (Math.abs(growRate) === Infinity) {
       return 100_000;
     }
-    return Math.ceil(ns.growthAnalyze(hostname, growRate) * 10000);
+    return Math.ceil(ns.growthAnalyze(hostname, growRate));
   };
   /**
    * @param {string} hostname
@@ -115,9 +115,7 @@ export async function main(ns) {
     if (moneyAvail === 0) {
       return 0;
     }
-    return Math.ceil(
-      (moneyMax / (moneyAvail * ns.hackAnalyze(hostname))) * 10000
-    );
+    return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)));
   };
   /**
    * @param {string} hostname
@@ -129,6 +127,12 @@ export async function main(ns) {
         ns.getServerMinSecurityLevel(hostname)) /
         WEAK_AMOUNT
     );
+  /** @param {number} growsRemaining */
+  const weakensForGrow = (growsRemaining) =>
+    Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
+  /** @param {number} hacksRemaining */
+  const weakensForHack = (hacksRemaining) =>
+    Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 
   /**
    * @param {Server} destination
@@ -310,13 +314,10 @@ export async function main(ns) {
       ns.getServerMaxRam(source.hostname) -
       ns.getServerUsedRam(source.hostname);
     const threadsAvail = Math.floor(availRam / scriptCost);
-    if (threadsAvail === 0) {
+    if (threadsNeeded === 0 || threadsAvail === 0) {
       return null;
     }
-    const threads = Math.max(
-      threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail,
-      1
-    );
+    const threads = threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail;
     const scriptArgs = [destination.hostname, delay.toString()];
     if (ns.exec(script, source.hostname, threads, ...scriptArgs) !== 0) {
       return {
@@ -372,9 +373,7 @@ export async function main(ns) {
    */
   const dispatchGrow = async (nukedHostnames, destination) => {
     let growsRemaining = getGrowThreads(destination.hostname);
-    let weakensRemaining = Math.ceil(
-      ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT
-    );
+    let weakensRemaining = weakensForGrow(growsRemaining);
     let longestTimeTaken = -Infinity;
     while (growsRemaining > 0) {
       const currentTimeTaken = Math.max(
@@ -385,6 +384,7 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       growsRemaining = getGrowThreads(destination.hostname);
+      weakensRemaining = weakensForGrow(growsRemaining);
       if (growsRemaining === 0) {
         break;
       }
@@ -397,19 +397,19 @@ export async function main(ns) {
         if (growsRemaining < 1) {
           break;
         }
-        const growRes = execScript(source, destination, AGENT_GROW_SCRIPT, {
-          threadsNeeded: growsRemaining,
-          delay: 0,
-        });
-        if (growRes != null) {
-          growsRemaining = growRes.threadsRemaining;
-        }
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           delay: 0,
         });
         if (weakRes != null) {
           weakensRemaining = weakRes.threadsRemaining;
+        }
+        const growRes = execScript(source, destination, AGENT_GROW_SCRIPT, {
+          threadsNeeded: growsRemaining,
+          delay: 0,
+        });
+        if (growRes != null) {
+          growsRemaining = growRes.threadsRemaining;
         }
       }
       await ns.sleep(DISPATCH_INTERVAL);
@@ -423,9 +423,7 @@ export async function main(ns) {
    */
   const dispatchHack = async (nukedHostnames, destination) => {
     let hacksRemaining = getHackThreads(destination.hostname);
-    let weakensRemaining = Math.ceil(
-      ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT
-    );
+    let weakensRemaining = weakensForHack(hacksRemaining);
     let longestTimeTaken = -Infinity;
     while (hacksRemaining > 0) {
       const currentTimeTaken = Math.max(
@@ -436,6 +434,7 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       hacksRemaining = getHackThreads(destination.hostname);
+      weakensRemaining = weakensForHack(hacksRemaining);
       if (hacksRemaining === 0) {
         break;
       }
@@ -448,19 +447,19 @@ export async function main(ns) {
         if (hacksRemaining < 1) {
           break;
         }
-        const hackRes = execScript(source, destination, AGENT_HACK_SCRIPT, {
-          threadsNeeded: hacksRemaining,
-          delay: 0,
-        });
-        if (hackRes != null) {
-          hacksRemaining = hackRes.threadsRemaining;
-        }
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           delay: 0,
         });
         if (weakRes != null) {
           weakensRemaining = weakRes.threadsRemaining;
+        }
+        const hackRes = execScript(source, destination, AGENT_HACK_SCRIPT, {
+          threadsNeeded: hacksRemaining,
+          delay: 0,
+        });
+        if (hackRes != null) {
+          hacksRemaining = hackRes.threadsRemaining;
         }
       }
       await ns.sleep(DISPATCH_INTERVAL);
