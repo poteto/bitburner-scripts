@@ -10,7 +10,7 @@ import createLogger from './create-logger.js';
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
 const DISPATCH_INTERVAL = 500;
-const LOOP_INTERVAL = 3_000;
+const LOOP_INTERVAL = 1_000;
 const WEAK_AMOUNT = 0.05;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
@@ -111,11 +111,10 @@ export async function main(ns) {
    */
   const getHackThreads = (hostname) => {
     const moneyAvail = ns.getServerMoneyAvailable(hostname);
-    const moneyMax = ns.getServerMaxMoney(hostname);
     if (moneyAvail === 0) {
       return 0;
     }
-    return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)));
+    return Math.ceil(100 / ns.hackAnalyze(hostname));
   };
   /**
    * @param {string} hostname
