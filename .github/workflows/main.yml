@@ -42,11 +42,7 @@ jobs:
           github_token: ${{ secrets.PAT }}
           # Commit message.
           message: Sync bitburner types
-          
-      - name: Extract Branch Name
-        run: echo "##[set-output name=branch;]${GITHUB_REF#refs/heads/}"
-        id: extract_branch
-      
+
       - name: Sticky Pull Request Comment
         uses: marocchino/sticky-pull-request-comment@v2.2.0
         with:
