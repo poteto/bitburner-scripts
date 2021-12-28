@@ -411,9 +411,9 @@ export async function main(ns) {
       log(
         `  ↳ Growing ${destination.hostname} with ${formatThreads(
           growsRemaining
-        )} grow threads and ${weakensRemaining} weak threads in ${ns.tFormat(
-          currentTimeTaken
-        )}`,
+        )} grow threads and ${formatThreads(
+          weakensRemaining
+        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
         'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
@@ -464,9 +464,9 @@ export async function main(ns) {
       log(
         `  ↳ Hacking ${destination.hostname} with ${formatThreads(
           hacksRemaining
-        )} hack threads and ${weakensRemaining} weak threads in ${ns.tFormat(
-          currentTimeTaken
-        )}`,
+        )} hack threads and ${formatThreads(
+          weakensRemaining
+        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
         'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
