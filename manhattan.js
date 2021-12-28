@@ -317,39 +317,30 @@ export async function main(ns) {
       return null;
     }
     const threads = threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail;
-    const res = {
-      threadsSpawned: threads,
-      threadsRemaining: threadsNeeded - threads,
-      ramUsed: scriptCost * threads,
-    };
-    const hasPrev = ns.scriptRunning(script, source.hostname);
-    let pid = 0;
-    if (hasPrev) {
-      for (const process of ns.ps(source.hostname)) {
-        if (process.filename !== script) {
-          continue;
-        }
-        const [destinationHostname, instanceId] = process.args;
-        // Only a single instance of a script for a given set of args can be run at a time. To get
-        // around this, bump instanceId by 1.
-        pid = ns.exec(
-          script,
-          source.hostname,
-          threads,
-          destinationHostname,
-          (Number(instanceId) + 1).toString()
-        );
+    let id = instanceId;
+    for (const process of ns.ps(source.hostname)) {
+      const [prevHostname, instanceId] = process.args;
+      if (
+        process.filename !== script ||
+        prevHostname !== destination.hostname
+      ) {
+        continue;
       }
-    } else {
-      pid = ns.exec(
-        script,
-        source.hostname,
-        threads,
-        destination.hostname,
-        instanceId
-      );
+      // Only a single instance of a script for a given set of args can be run at a time. To get
+      // around this, bump instanceId by 1.
+      id = (Number(instanceId) + 1).toString();
+      break;
     }
-    return pid !== 0 ? res : null;
+    if (
+      ns.exec(script, source.hostname, threads, destination.hostname, id) !== 0
+    ) {
+      return {
+        threadsSpawned: threads,
+        threadsRemaining: threadsNeeded - threads,
+        ramUsed: scriptCost * threads,
+      };
+    }
+    return null;
   };
   /**
    * @param {Set<string>} nukedHostnames
