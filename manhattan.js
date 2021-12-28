@@ -340,10 +340,6 @@ export async function main(ns) {
       if (currentTimeTaken > longestTimeTaken) {
         longestTimeTaken = currentTimeTaken;
       }
-      weakensRemaining = getWeakThreads(destination.hostname);
-      if (weakensRemaining === 0) {
-        break;
-      }
       log(
         `Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
