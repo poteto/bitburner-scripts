@@ -152,13 +152,16 @@ export async function main(ns) {
   const getHackTime = (destination) =>
     Math.ceil(ns.getHackTime(destination.hostname));
 
-  /** @param {Server} destination */
-  const report = (destination) => {
+  /**
+   * @param {string} reportType
+   * @param {Server} destination
+   */
+  const report = (reportType, destination) => {
     const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
     const moneyMax = ns.getServerMaxMoney(destination.hostname);
     const securityCurr = ns.getServerSecurityLevel(destination.hostname);
     const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
-    log(`--- Report for ${destination.hostname} ---`);
+    log(`--- ${reportType} Report for ${destination.hostname} ---`);
     log(
       `  Money   : (${formatPercent(moneyCurr / moneyMax)}) ${formatMoney(
         moneyCurr
@@ -513,27 +516,22 @@ export async function main(ns) {
       );
 
       if (minSecurityLevel < securityLevel) {
+        report('WEAK', destination);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchWeak(nukedHostnames, destination);
-        report(destination);
-        continue;
-      }
-
-      if (minSecurityLevel === securityLevel) {
-        killScriptOnAllServers(nukedHostnames, destination, AGENT_WEAK_SCRIPT);
       }
 
       if (moneyAvail < moneyMax) {
+        report('GROW', destination);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchGrow(nukedHostnames, destination);
-        report(destination);
       }
 
       if (moneyAvail === moneyMax) {
+        report('HACK', destination);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
         await dispatchHack(nukedHostnames, destination);
-        report(destination);
       }
 
       await ns.sleep(LOOP_INTERVAL);
