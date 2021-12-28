@@ -327,7 +327,7 @@ export async function main(ns) {
     const threads = threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail;
     let id = instanceId;
     for (const process of ns.ps(source.hostname)) {
-      const [prevHostname, instanceId] = process.args;
+      const [prevHostname, prevId] = process.args;
       if (
         process.filename !== script ||
         prevHostname !== destination.hostname
@@ -336,7 +336,7 @@ export async function main(ns) {
       }
       // Only a single instance of a script for a given set of args can be run at a time. To get
       // around this, bump instanceId by 1.
-      const newId = Number(instanceId) + 1;
+      const newId = Number(prevId) + 1;
       if (newId > Number(id)) {
         id = newId.toString();
       }
