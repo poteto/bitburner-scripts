@@ -111,11 +111,10 @@ export async function main(ns) {
    */
   const getHackThreads = (hostname) => {
     const moneyAvail = ns.getServerMoneyAvailable(hostname);
-    const moneyMax = ns.getServerMaxMoney(hostname);
     if (moneyAvail === 0) {
       return 0;
     }
-    return Math.ceil(moneyMax / (moneyAvail * ns.hackAnalyze(hostname)));
+    return Math.ceil(100 / ns.hackAnalyze(hostname));
   };
   /**
    * @param {string} hostname
