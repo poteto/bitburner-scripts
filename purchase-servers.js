@@ -94,7 +94,6 @@ export async function main(ns) {
         log(`Can't upgrade ${hostname} as there are scripts running`, 'warning');
         await ns.sleep(INTERVAL);
       }
-      ns.killall(hostname);
       if (ns.deleteServer(hostname) === false) {
         throw new Error('Should never get here');
       }
