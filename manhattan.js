@@ -187,10 +187,6 @@ export async function main(ns) {
     const user = ns.getPlayer();
 
     if (user.hacking < server.requiredHackingSkill) {
-      log(
-        `Expected hacking level ${server.requiredHackingSkill} for ${server.hostname}, got: ${user.hacking}`,
-        'warning'
-      );
       return false;
     }
 
@@ -370,7 +366,7 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       log(
-        `Weakening ${destination.hostname} with ${formatThreads(
+        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
@@ -413,7 +409,7 @@ export async function main(ns) {
         break;
       }
       log(
-        `Growing ${destination.hostname} with ${formatThreads(
+        `  ↳ Growing ${destination.hostname} with ${formatThreads(
           growsRemaining
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
@@ -463,7 +459,7 @@ export async function main(ns) {
         break;
       }
       log(
-        `Hacking ${destination.hostname} with ${formatThreads(
+        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
           hacksRemaining
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
