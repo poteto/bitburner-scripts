@@ -339,7 +339,6 @@ export async function main(ns) {
       if (newId > Number(id)) {
         id = newId.toString();
       }
-      break;
     }
     if (
       ns.exec(script, source.hostname, threads, destination.hostname, id) !== 0
