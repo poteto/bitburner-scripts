@@ -523,6 +523,7 @@ export async function main(ns) {
         killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchWeak(nukedHostnames, destination);
+        continue;
       }
 
       if (moneyAvail < moneyMax) {
