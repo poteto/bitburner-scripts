@@ -101,7 +101,7 @@ export async function main(ns) {
       return 0;
     }
     if (Math.abs(growRate) === Infinity) {
-      return 100_000;
+      return 20_000;
     }
     return Math.ceil(ns.growthAnalyze(hostname, growRate));
   };
