@@ -52,7 +52,4 @@ jobs:
         with:
           # comment message
           message: |
-            $branch = ${{ steps.extract_branch.outputs.branch }}
-            echo Test this out locally with `run sync-scripts --branch=$branch`
-          # The GitHub access token (e.g. secrets.GITHUB_TOKEN) used to create or update the comment. This defaults to {{ github.token }}.
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+            echo Test this out locally with \`run sync-scripts --branch=${${{ github.head_ref }}}\`
