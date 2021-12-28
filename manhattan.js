@@ -337,7 +337,7 @@ export async function main(ns) {
           source.hostname,
           threads,
           destinationHostname,
-          instanceId + 1
+          (Number(instanceId) + 1).toString()
         );
       }
     } else {
