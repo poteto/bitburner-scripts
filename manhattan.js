@@ -226,7 +226,6 @@ export async function main(ns) {
       if (isHome(server.hostname)) {
         continue;
       }
-      ns.killall(server.hostname);
       for (const script of AGENT_PAYLOAD) {
         ns.rm(script, server.hostname);
         await ns.scp(script, currentHost, server.hostname);
