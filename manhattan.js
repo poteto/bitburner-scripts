@@ -187,10 +187,6 @@ export async function main(ns) {
     const user = ns.getPlayer();
 
     if (user.hacking < server.requiredHackingSkill) {
-      log(
-        `Expected hacking level ${server.requiredHackingSkill} for ${server.hostname}, got: ${user.hacking}`,
-        'warning'
-      );
       return false;
     }
 
@@ -370,9 +366,10 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       log(
-        `Weakening ${destination.hostname} with ${formatThreads(
+        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} threads in ${ns.tFormat(currentTimeTaken)}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -413,9 +410,12 @@ export async function main(ns) {
         break;
       }
       log(
-        `Growing ${destination.hostname} with ${formatThreads(
+        `  ↳ Growing ${destination.hostname} with ${formatThreads(
           growsRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} grow threads and ${formatThreads(
+          weakensRemaining
+        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -463,9 +463,12 @@ export async function main(ns) {
         break;
       }
       log(
-        `Hacking ${destination.hostname} with ${formatThreads(
+        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
           hacksRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`
+        )} hack threads and ${formatThreads(
+          weakensRemaining
+        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -520,6 +523,7 @@ export async function main(ns) {
         killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
         killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchWeak(nukedHostnames, destination);
+        continue;
       }
 
       if (moneyAvail < moneyMax) {
