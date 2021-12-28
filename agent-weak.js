@@ -2,10 +2,9 @@
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  const [targetHostname, delay] = ns.args;
-  ns.print(`[INFO] Started at: ${new Date().toLocaleString()}`);
-  if (delay > 0) {
-    await ns.sleep(Number(delay));
-  }
+  const [targetHostname, instanceId] = ns.args;
+  ns.print(
+    `[INFO] Started instance ${instanceId} at: ${new Date().toLocaleString()}`
+  );
   await ns.weaken(targetHostname.toString());
 }

@@ -299,14 +299,14 @@ export async function main(ns) {
    * @param {Server} source
    * @param {Server} destination
    * @param {AgentScript} script
-   * @param {{threadsNeeded: number, delay: number}} options
+   * @param {{threadsNeeded: number, instanceId: string}} options
    * @returns {{threadsSpawned: number, threadsRemaining: number, ramUsed: number} | null}
    */
   const execScript = (
     source,
     destination,
     script,
-    { threadsNeeded, delay }
+    { threadsNeeded, instanceId }
   ) => {
     const scriptCost = ns.getScriptRam(script);
     const availRam =
@@ -317,15 +317,39 @@ export async function main(ns) {
       return null;
     }
     const threads = threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail;
-    const scriptArgs = [destination.hostname, delay.toString()];
-    if (ns.exec(script, source.hostname, threads, ...scriptArgs) !== 0) {
-      return {
-        threadsSpawned: threads,
-        threadsRemaining: threadsNeeded - threads,
-        ramUsed: scriptCost * threads,
-      };
+    const res = {
+      threadsSpawned: threads,
+      threadsRemaining: threadsNeeded - threads,
+      ramUsed: scriptCost * threads,
+    };
+    const hasPrev = ns.scriptRunning(script, source.hostname);
+    let pid = 0;
+    if (hasPrev) {
+      for (const process of ns.ps(source.hostname)) {
+        if (process.filename !== script) {
+          continue;
+        }
+        const [destinationHostname, instanceId] = process.args;
+        // Only a single instance of a script for a given set of args can be run at a time. To get
+        // around this, bump instanceId by 1.
+        pid = ns.exec(
+          script,
+          source.hostname,
+          threads,
+          destinationHostname,
+          instanceId + 1
+        );
+      }
+    } else {
+      pid = ns.exec(
+        script,
+        source.hostname,
+        threads,
+        destination.hostname,
+        instanceId
+      );
     }
-    return null;
+    return pid !== 0 ? res : null;
   };
   /**
    * @param {Set<string>} nukedHostnames
@@ -348,7 +372,7 @@ export async function main(ns) {
       for (const source of getControlledServers(nukedHostnames)) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
-          delay: 0,
+          instanceId: '0',
         });
         if (res != null) {
           weakensRemaining = res.threadsRemaining;
@@ -391,14 +415,14 @@ export async function main(ns) {
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
-          delay: 0,
+          instanceId: '0',
         });
         if (weakRes != null) {
           weakensRemaining = weakRes.threadsRemaining;
         }
         const growRes = execScript(source, destination, AGENT_GROW_SCRIPT, {
           threadsNeeded: growsRemaining,
-          delay: 0,
+          instanceId: '0',
         });
         if (growRes != null) {
           growsRemaining = growRes.threadsRemaining;
@@ -441,14 +465,14 @@ export async function main(ns) {
       for (const source of getControlledServers(nukedHostnames)) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
-          delay: 0,
+          instanceId: '0',
         });
         if (weakRes != null) {
           weakensRemaining = weakRes.threadsRemaining;
         }
         const hackRes = execScript(source, destination, AGENT_HACK_SCRIPT, {
           threadsNeeded: hacksRemaining,
-          delay: 0,
+          instanceId: '0',
         });
         if (hackRes != null) {
           hacksRemaining = hackRes.threadsRemaining;
