@@ -346,15 +346,15 @@ export async function main(ns) {
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
       for (const source of getControlledServers(nukedHostnames)) {
-        if (weakensRemaining < 1) {
-          break;
-        }
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           delay: 0,
         });
         if (res != null) {
           weakensRemaining = res.threadsRemaining;
+          if (weakensRemaining < 1) {
+            break;
+          }
         }
       }
       await ns.sleep(DISPATCH_INTERVAL);
@@ -389,9 +389,6 @@ export async function main(ns) {
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
       for (const source of getControlledServers(nukedHostnames)) {
-        if (growsRemaining < 1) {
-          break;
-        }
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           delay: 0,
@@ -405,6 +402,9 @@ export async function main(ns) {
         });
         if (growRes != null) {
           growsRemaining = growRes.threadsRemaining;
+          if (growsRemaining < 1) {
+            break;
+          }
         }
       }
       await ns.sleep(DISPATCH_INTERVAL);
@@ -439,9 +439,6 @@ export async function main(ns) {
         )} threads in ${ns.tFormat(currentTimeTaken)}`
       );
       for (const source of getControlledServers(nukedHostnames)) {
-        if (hacksRemaining < 1) {
-          break;
-        }
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           delay: 0,
@@ -455,6 +452,9 @@ export async function main(ns) {
         });
         if (hackRes != null) {
           hacksRemaining = hackRes.threadsRemaining;
+          if (hacksRemaining < 1) {
+            break;
+          }
         }
       }
       await ns.sleep(DISPATCH_INTERVAL);
