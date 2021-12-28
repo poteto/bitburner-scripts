@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Sync bitburner types
+      - name: Sync Bitburner Types
         run: |
           curl https://raw.githubusercontent.com/danielyxie/bitburner/dev/dist/bitburner.d.ts -O
           git add .
@@ -42,3 +42,17 @@ jobs:
           github_token: ${{ secrets.PAT }}
           # Commit message.
           message: Sync bitburner types
+          
+      - name: Extract Branch Name
+        run: echo "##[set-output name=branch;]${GITHUB_REF#refs/heads/}"
+        id: extract_branch
+      
+      - name: Sticky Pull Request Comment
+        uses: marocchino/sticky-pull-request-comment@v2.2.0
+        with:
+          # comment message
+          message: |
+            $branch = ${{ steps.extract_branch.outputs.branch }}
+            echo Test this out locally with `run sync-scripts --branch=$branch`
+          # The GitHub access token (e.g. secrets.GITHUB_TOKEN) used to create or update the comment. This defaults to {{ github.token }}.
+          GITHUB_TOKEN: ${{ secrets.PAT }}
