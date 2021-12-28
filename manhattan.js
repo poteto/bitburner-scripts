@@ -368,7 +368,8 @@ export async function main(ns) {
       log(
         `  ↳ Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}, 'success`
+        )} threads in ${ns.tFormat(currentTimeTaken)}`,
+        'success'
       );
       for (const source of getControlledServers(nukedHostnames)) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
