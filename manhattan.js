@@ -278,7 +278,15 @@ export async function main(ns) {
   const getControlledServers = (nukedHostnames) =>
     [ROOT_NODE, ...nukedHostnames, ...ns.getPurchasedServers()]
       .map((hostname) => ns.getServer(hostname))
-      .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
+      .sort((a, b) => {
+        if (isHome(a.hostname)) {
+          return -1;
+        }
+        if (isHome(b.hostname)) {
+          return 1;
+        }
+        return b.cpuCores * b.maxRam > a.cpuCores * a.maxRam ? 1 : -1;
+      });
   /**
    * @param {Set<string>} nukedHostnames
    * @returns {Server[]}
