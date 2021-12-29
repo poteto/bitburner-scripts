@@ -221,7 +221,10 @@ export async function main(ns) {
       ns.sqlinject(server.hostname);
     }
 
-    if (server.openPortCount >= ns.getServerNumPortsRequired(server.hostname)) {
+    if (
+      ns.getServer(server.hostname).openPortCount >=
+      ns.getServerNumPortsRequired(server.hostname)
+    ) {
       ns.nuke(server.hostname);
     }
 
