@@ -68,6 +68,10 @@ export async function main(ns) {
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
 
+  if (top < 1) {
+    throw new Error(`top cannot be less than 1, got: ${top}`);
+  }
+
   /** @param {number} n */
   const formatThreads = (n) => ns.nFormat(n, '0,0.00a');
   /** @param {number} n */
