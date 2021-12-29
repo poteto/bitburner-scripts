@@ -1,8 +1,8 @@
 /**
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
- *
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
+ * @typedef {{top: number}} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -61,6 +61,10 @@ export async function main(ns) {
   ns.disableLog('httpworm');
   ns.disableLog('sqlinject');
 
+  /** @type {ScriptOptions} */
+  const { top } = ns.flags([
+    ['top', Infinity], // How many of the top targets to cycle through
+  ]);
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
 
@@ -498,7 +502,11 @@ export async function main(ns) {
    */
   const orchestrateControlledServers = async (nukedHostnames) => {
     const rankedDestinations = getRankedDestinations(nukedHostnames);
-    for (const destinationIdx of makeCycle(0, rankedDestinations.length - 1)) {
+    const cycleEnd =
+      top === Infinity
+        ? rankedDestinations.length - 1
+        : Math.min(top, rankedDestinations.length - 1);
+    for (const destinationIdx of makeCycle(0, cycleEnd)) {
       const traverse = createTraversal();
       const newTraversedHostnames = traverse(currentHost);
       if (newTraversedHostnames.size !== nukedHostnames.size) {
