@@ -350,11 +350,11 @@ export async function main(ns) {
     return null;
   };
   /**
-   * @param {Set<string>} nukedHostnames
+   * @param {Server[]} controlledServers
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchWeak = async (nukedHostnames, destination) => {
+  const dispatchWeak = async (controlledServers, destination) => {
     let weakensRemaining = getWeakThreads(destination.hostname);
     let longestTimeTaken = -Infinity;
     while (weakensRemaining > 0) {
@@ -368,7 +368,7 @@ export async function main(ns) {
         )} threads in ${ns.tFormat(currentTimeTaken)}`,
         'success'
       );
-      for (const source of getControlledServers(nukedHostnames)) {
+      for (const source of controlledServers) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           instanceId: '0',
@@ -385,11 +385,11 @@ export async function main(ns) {
     return longestTimeTaken;
   };
   /**
-   * @param {Set<string>} nukedHostnames
+   * @param {Server[]} controlledServers
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchGrow = async (nukedHostnames, destination) => {
+  const dispatchGrow = async (controlledServers, destination) => {
     let growsRemaining = getGrowThreads(destination.hostname);
     let weakensRemaining = weakensForGrow(growsRemaining);
     let longestTimeTaken = -Infinity;
@@ -414,7 +414,7 @@ export async function main(ns) {
         )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
         'success'
       );
-      for (const source of getControlledServers(nukedHostnames)) {
+      for (const source of controlledServers) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           instanceId: '0',
@@ -438,11 +438,11 @@ export async function main(ns) {
     return longestTimeTaken;
   };
   /**
-   * @param {Set<string>} nukedHostnames
+   * @param {Server[]} controlledServers
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchHack = async (nukedHostnames, destination) => {
+  const dispatchHack = async (controlledServers, destination) => {
     let hacksRemaining = getHackThreads(destination.hostname);
     let weakensRemaining = weakensForHack(hacksRemaining);
     let longestTimeTaken = -Infinity;
@@ -467,7 +467,7 @@ export async function main(ns) {
         )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
         'success'
       );
-      for (const source of getControlledServers(nukedHostnames)) {
+      for (const source of controlledServers) {
         const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
           instanceId: '0',
@@ -493,10 +493,13 @@ export async function main(ns) {
 
   /**
    * Note: This is an infinite loop cycling through servers
-   * @param {Set<string>} nukedHostnames
+   * @param {Server[]} controlledServers
+   * @param {Server[]} rankedDestinations
    */
-  const orchestrateControlledServers = async (nukedHostnames) => {
-    const rankedDestinations = getRankedDestinations(nukedHostnames, order);
+  const orchestrateControlledServers = async (
+    controlledServers,
+    rankedDestinations
+  ) => {
     const cycleEnd =
       top === Infinity
         ? rankedDestinations.length - 1
@@ -515,17 +518,17 @@ export async function main(ns) {
 
       if (minSecurityLevel < securityLevel) {
         report('WEAK', destination);
-        await dispatchWeak(nukedHostnames, destination);
+        await dispatchWeak(controlledServers, destination);
       }
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        await dispatchGrow(nukedHostnames, destination);
+        await dispatchGrow(controlledServers, destination);
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        await dispatchHack(nukedHostnames, destination);
+        await dispatchHack(controlledServers, destination);
       }
 
       await ns.sleep(LOOP_INTERVAL);
@@ -534,6 +537,8 @@ export async function main(ns) {
 
   const traverse = createTraversal();
   const nukedHostnames = traverse(currentHost);
+  const controlledServers = getControlledServers(nukedHostnames);
+  const rankedDestinations = getRankedDestinations(nukedHostnames, order);
   await installAgents(nukedHostnames);
-  await orchestrateControlledServers(nukedHostnames);
+  await orchestrateControlledServers(controlledServers, rankedDestinations);
 }
