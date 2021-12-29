@@ -240,21 +240,6 @@ export async function main(ns) {
       }
     }
   };
-  /**
-   * @param {Set<string>} nukedHostnames
-   * @param {Server} destination
-   * @param {AgentScript} script
-   */
-  const killScriptOnAllServers = (nukedHostnames, destination, script) => {
-    for (const server of getControlledServers(nukedHostnames)) {
-      for (const process of ns.ps(server.hostname)) {
-        if (process.filename === script) {
-          process.args.splice(0, 1, destination.hostname);
-          ns.kill(process.filename, server.hostname, ...process.args);
-        }
-      }
-    }
-  };
   const createTraversal = () => {
     const visited = new Set();
     const nukedHostnames = new Set();
@@ -530,21 +515,16 @@ export async function main(ns) {
 
       if (minSecurityLevel < securityLevel) {
         report('WEAK', destination);
-        killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
-        killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchWeak(nukedHostnames, destination);
-        continue;
       }
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        killScriptOnAllServers(nukedHostnames, destination, AGENT_HACK_SCRIPT);
         await dispatchGrow(nukedHostnames, destination);
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        killScriptOnAllServers(nukedHostnames, destination, AGENT_GROW_SCRIPT);
         await dispatchHack(nukedHostnames, destination);
       }
 
