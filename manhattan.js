@@ -12,6 +12,8 @@ const FLEET_PREFIX = 'fleet-node';
 const DISPATCH_INTERVAL = 50;
 const LOOP_INTERVAL = 50;
 const WEAK_AMOUNT = 0.05;
+const DEFAULT_GROW_THREADS = 10_000;
+const DEFAULT_HACK_THREADS = 10_000;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
 export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
@@ -109,10 +111,9 @@ export async function main(ns) {
     if (moneyMax === moneyAvail) {
       return 0;
     }
-    if (Math.abs(growRate) === Infinity) {
-      return 10_000;
-    }
-    return Math.ceil(ns.growthAnalyze(hostname, growRate));
+    return Math.abs(growRate) === Infinity
+      ? DEFAULT_GROW_THREADS
+      : Math.ceil(ns.growthAnalyze(hostname, growRate));
   };
   /**
    * @param {string} hostname
@@ -123,7 +124,8 @@ export async function main(ns) {
     if (moneyAvail === 0) {
       return 0;
     }
-    return Math.ceil(100 / ns.hackAnalyze(hostname));
+    const threads = Math.ceil(100 / ns.hackAnalyze(hostname));
+    return isNaN(threads) ? DEFAULT_HACK_THREADS : threads;
   };
   /**
    * @param {string} hostname
