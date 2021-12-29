@@ -9,8 +9,8 @@ import createLogger from './create-logger.js';
 
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
-const DISPATCH_INTERVAL = 500;
-const LOOP_INTERVAL = 1_000;
+const DISPATCH_INTERVAL = 50;
+const LOOP_INTERVAL = 50;
 const WEAK_AMOUNT = 0.05;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
