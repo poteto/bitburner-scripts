@@ -28,21 +28,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Sync Bitburner Types
-        run: |
-          curl https://raw.githubusercontent.com/danielyxie/bitburner/dev/dist/bitburner.d.ts -O
-          git add .
-          
-      - name: GitHub Commit & Push
-        # You may pin to the exact commit or the version.
-        # uses: actions-js/push@a52398fac807b0c1e5f1492c969b477c8560a0ba
-        uses: actions-js/push@v1.3
-        with:
-          # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
-          github_token: ${{ secrets.PAT }}
-          # Commit message.
-          message: Sync bitburner types
-
       - name: Sticky Pull Request Comment
         uses: marocchino/sticky-pull-request-comment@v2.2.0
         with:
@@ -59,3 +44,18 @@ jobs:
             ```
             run sync-scripts.js --branch=${{ github.head_ref }} --watch
             ```
+
+      - name: Sync Bitburner Types
+        run: |
+          curl https://raw.githubusercontent.com/danielyxie/bitburner/dev/dist/bitburner.d.ts -O
+          git add .
+          
+      - name: GitHub Commit & Push
+        # You may pin to the exact commit or the version.
+        # uses: actions-js/push@a52398fac807b0c1e5f1492c969b477c8560a0ba
+        uses: actions-js/push@v1.3
+        with:
+          # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT }}
+          # Commit message.
+          message: Sync bitburner types
