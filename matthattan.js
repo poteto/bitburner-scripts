@@ -76,10 +76,6 @@ export async function main(ns) {
     const server = ns.getServer(node);
 
     if (user.hacking < server.requiredHackingSkill) {
-      log(
-        `Expected hacking level ${server.requiredHackingSkill} for ${node}, got: ${user.hacking}`,
-        'warning'
-      );
       return false;
     }
 
@@ -103,8 +99,10 @@ export async function main(ns) {
       ns.sqlinject(node);
     }
 
-    if (server.openPortCount >= ns.getServerNumPortsRequired(node)) {
-      ns.nuke(node);
+    if (
+      ns.getServer(node).openPortCount >= ns.getServerNumPortsRequired(node)
+    ) {
+      ns.nuke(server.hostname);
     }
 
     if (server.backdoorInstalled === false) {
@@ -185,10 +183,7 @@ export async function main(ns) {
       traverse(nextNode, depth + 1);
     }
   };
-
-  traverse(currentHost);
-
-  const listOfTargetsSorted = () => {
+  const getSortedTargets = () => {
     const sortedTargets = [];
     for (const nukedNode of nuked) {
       const node = ns.getServer(nukedNode);
@@ -200,12 +195,21 @@ export async function main(ns) {
     return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax);
   };
 
-  const arraySortedTargets = listOfTargetsSorted();
-  const arraySortedTargets2 = [];
+  traverse(currentHost);
+  const sortedTargets = getSortedTargets();
+  const stack = [];
   let useFirst = true;
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
     .map((node) => ns.getServer(node))
-    .sort((a, b) => b.cpuCores * b.maxRam - a.cpuCores * a.maxRam);
+    .sort((a, b) => {
+      if (isHome(a.hostname)) {
+        return -1;
+      }
+      if (isHome(b.hostname)) {
+        return 1;
+      }
+      return b.cpuCores * b.maxRam > a.cpuCores * a.maxRam ? 1 : -1;
+    });
   for (const node of fleet) {
     await installAgents(node);
   }
@@ -213,26 +217,26 @@ export async function main(ns) {
   while (true) {
     for (const node of fleet) {
       if (useFirst) {
-        const hostTemp = arraySortedTargets.shift();
-        if (hostTemp == null) {
+        const nextTarget = sortedTargets.shift();
+        if (nextTarget == null) {
           continue;
         }
-        pointAgentAtTarget(node.hostname, hostTemp.hostname);
-        arraySortedTargets2.push(hostTemp);
+        pointAgentAtTarget(node.hostname, nextTarget.hostname);
+        stack.push(nextTarget);
       } else {
-        const hostTemp = arraySortedTargets2.pop();
-        if (hostTemp == null) {
+        const nextTarget = stack.pop();
+        if (nextTarget == null) {
           continue;
         }
-        pointAgentAtTarget(node.hostname, hostTemp.hostname);
-        arraySortedTargets.push(hostTemp);
+        pointAgentAtTarget(node.hostname, nextTarget.hostname);
+        sortedTargets.push(nextTarget);
       }
 
-      if (arraySortedTargets.length === 0) {
+      if (sortedTargets.length === 0) {
         useFirst = false;
       }
 
-      if (arraySortedTargets2.length === 0) {
+      if (stack.length === 0) {
         useFirst = true;
       }
     }
