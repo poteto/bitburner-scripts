@@ -2,7 +2,7 @@
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
- * @typedef {{top: number}} ScriptOptions
+ * @typedef {{top: number, order: 'asc' | 'desc'}} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -62,8 +62,9 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { top } = ns.flags([
+  const { top, order } = ns.flags([
     ['top', Infinity], // How many of the top targets to cycle through
+    ['order', 'desc'], // What order to sort targets
   ]);
   const log = createLogger(ns);
   const currentHost = ns.getHostname();
@@ -280,9 +281,10 @@ export async function main(ns) {
       });
   /**
    * @param {Set<string>} nukedHostnames
+   * @param {ScriptOptions['order']} order
    * @returns {Server[]}
    */
-  const getRankedDestinations = (nukedHostnames) => {
+  const getRankedDestinations = (nukedHostnames, order) => {
     const rankedDestinations = [];
     for (const hostname of nukedHostnames) {
       const server = ns.getServer(hostname);
@@ -291,7 +293,9 @@ export async function main(ns) {
       }
       rankedDestinations.push(server);
     }
-    return rankedDestinations.sort((a, b) => b.moneyMax - a.moneyMax);
+    return rankedDestinations.sort((a, b) =>
+      order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
+    );
   };
 
   /**
@@ -490,7 +494,7 @@ export async function main(ns) {
    * @param {Set<string>} nukedHostnames
    */
   const orchestrateControlledServers = async (nukedHostnames) => {
-    const rankedDestinations = getRankedDestinations(nukedHostnames);
+    const rankedDestinations = getRankedDestinations(nukedHostnames, order);
     const cycleEnd =
       top === Infinity
         ? rankedDestinations.length - 1
