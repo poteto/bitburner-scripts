@@ -125,7 +125,7 @@ export async function main(ns) {
       return 0;
     }
     const threads = Math.ceil(100 / ns.hackAnalyze(hostname));
-    return isNaN(threads) ? DEFAULT_HACK_THREADS : threads;
+    return Math.abs(threads) === Infinity ? DEFAULT_HACK_THREADS : threads;
   };
   /**
    * @param {string} hostname
