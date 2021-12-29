@@ -502,12 +502,6 @@ export async function main(ns) {
         ? rankedDestinations.length - 1
         : Math.min(top, rankedDestinations.length - 1);
     for (const destinationIdx of makeCycle(0, cycleEnd)) {
-      const traverse = createTraversal();
-      const newTraversedHostnames = traverse(currentHost);
-      if (newTraversedHostnames.size !== nukedHostnames.size) {
-        log(`New nukable servers detected`, 'warning');
-        return;
-      }
       const destination = rankedDestinations[destinationIdx];
       if (destination == null) {
         continue;
@@ -538,11 +532,8 @@ export async function main(ns) {
     }
   };
 
-  while (true) {
-    const traverse = createTraversal();
-    const nukedHostnames = traverse(currentHost);
-    await installAgents(nukedHostnames);
-    await orchestrateControlledServers(nukedHostnames);
-    await ns.sleep(LOOP_INTERVAL);
-  }
+  const traverse = createTraversal();
+  const nukedHostnames = traverse(currentHost);
+  await installAgents(nukedHostnames);
+  await orchestrateControlledServers(nukedHostnames);
 }
