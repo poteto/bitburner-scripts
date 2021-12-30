@@ -69,14 +69,13 @@ export async function main(ns) {
     ['order', 'desc'], // What order to sort targets
   ]);
   const log = createLogger(ns);
-  const currentHost = ns.getHostname();
 
   if (top < 1) {
     throw new Error(`top cannot be less than 1, got: ${top}`);
   }
 
   /** @param {number} n */
-  const formatThreads = (n) => ns.nFormat(n, '0,0.00a');
+  const formatThreads = (n) => ns.nFormat(n, '0,0.0a');
   /** @param {number} n */
   const formatMoney = (n) => ns.nFormat(n, '($0.00a)');
   /** @param {number} n */
@@ -84,20 +83,11 @@ export async function main(ns) {
   /** @param {number} n */
   const formatPercent = (n) => ns.nFormat(n, '000.0%');
 
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  /** @param {string} hostname */
   const isHome = (hostname) => hostname === ROOT_NODE;
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  /** @param {string} hostname */
   const isFleet = (hostname) => hostname.startsWith(FLEET_PREFIX);
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  /** @param {string} hostname */
   const isOwned = (hostname) => isHome(hostname) || isFleet(hostname);
 
   /**
@@ -138,10 +128,10 @@ export async function main(ns) {
         WEAK_AMOUNT
     );
   /** @param {number} growsRemaining */
-  const weakensForGrow = (growsRemaining) =>
+  const getWeakensForGrow = (growsRemaining) =>
     Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
   /** @param {number} hacksRemaining */
-  const weakensForHack = (hacksRemaining) =>
+  const getWeakensForHack = (hacksRemaining) =>
     Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 
   /**
@@ -234,15 +224,15 @@ export async function main(ns) {
 
     return ns.hasRootAccess(server.hostname);
   };
-  /** @param {Set<string>} nukedHostnames */
-  const installAgents = async (nukedHostnames) => {
-    for (const server of getControlledServers(nukedHostnames)) {
+  /** @param {Server[]} controlledServers */
+  const installAgents = async (controlledServers) => {
+    for (const server of controlledServers) {
       if (isHome(server.hostname)) {
         continue;
       }
       for (const script of AGENT_PAYLOAD) {
         ns.rm(script, server.hostname);
-        await ns.scp(script, currentHost, server.hostname);
+        await ns.scp(script, ROOT_NODE, server.hostname);
       }
     }
   };
@@ -325,12 +315,12 @@ export async function main(ns) {
       return null;
     }
     const threads = threadsAvail > threadsNeeded ? threadsNeeded : threadsAvail;
-    let id = instanceId;
+    let id = Number(instanceId);
     for (const process of ns.ps(source.hostname)) {
       const [prevHostname, prevId] = process.args;
       if (
         process.filename !== script ||
-        prevHostname !== destination.hostname
+        destination.hostname !== prevHostname
       ) {
         continue;
       }
@@ -338,11 +328,17 @@ export async function main(ns) {
       // around this, bump instanceId by 1.
       const newId = Number(prevId) + 1;
       if (newId > Number(id)) {
-        id = newId.toString();
+        id = newId;
       }
     }
     if (
-      ns.exec(script, source.hostname, threads, destination.hostname, id) !== 0
+      ns.exec(
+        script,
+        source.hostname,
+        threads,
+        destination.hostname,
+        id.toString()
+      ) !== 0
     ) {
       return {
         threadsSpawned: threads,
@@ -394,7 +390,7 @@ export async function main(ns) {
    */
   const dispatchGrow = async (controlledServers, destination) => {
     let growsRemaining = getGrowThreads(destination.hostname);
-    let weakensRemaining = weakensForGrow(growsRemaining);
+    let weakensRemaining = getWeakensForGrow(growsRemaining);
     let longestTimeTaken = -Infinity;
     while (growsRemaining > 0) {
       const currentTimeTaken = Math.max(
@@ -405,7 +401,7 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       growsRemaining = getGrowThreads(destination.hostname);
-      weakensRemaining = weakensForGrow(growsRemaining);
+      weakensRemaining = getWeakensForGrow(growsRemaining);
       if (growsRemaining === 0) {
         break;
       }
@@ -447,7 +443,7 @@ export async function main(ns) {
    */
   const dispatchHack = async (controlledServers, destination) => {
     let hacksRemaining = getHackThreads(destination.hostname);
-    let weakensRemaining = weakensForHack(hacksRemaining);
+    let weakensRemaining = getWeakensForHack(hacksRemaining);
     let longestTimeTaken = -Infinity;
     while (hacksRemaining > 0) {
       const currentTimeTaken = Math.max(
@@ -458,7 +454,7 @@ export async function main(ns) {
         longestTimeTaken = currentTimeTaken;
       }
       hacksRemaining = getHackThreads(destination.hostname);
-      weakensRemaining = weakensForHack(hacksRemaining);
+      weakensRemaining = getWeakensForHack(hacksRemaining);
       if (hacksRemaining === 0) {
         break;
       }
@@ -539,9 +535,9 @@ export async function main(ns) {
   };
 
   const traverse = createTraversal();
-  const nukedHostnames = traverse(currentHost);
+  const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
-  await installAgents(nukedHostnames);
+  await installAgents(controlledServers);
   await orchestrateControlledServers(controlledServers, rankedDestinations);
 }
