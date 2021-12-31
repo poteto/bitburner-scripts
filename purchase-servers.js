@@ -1,8 +1,8 @@
 /**
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
- *
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
+ * @typedef {{force: boolean}} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -27,6 +27,11 @@ export async function main(ns) {
   ns.disableLog('purchaseServer');
   ns.disableLog('killall');
 
+  /** @type {ScriptOptions} */
+  const { force } = ns.flags([
+    ['force', false], // Whether to forcefully upgrade servers
+  ]);
+
   const log = createLogger(ns);
   /** @param {number} cost */
   const insufficientFunds = (cost) =>
@@ -39,6 +44,20 @@ export async function main(ns) {
     );
   /** @param {number} n */
   const getExponent = (n) => Math.ceil(Math.log(n) / Math.log(2));
+  /** @param {number} cost */
+  const waitForMoney = async (cost) => {
+    while (ns.getServerMoneyAvailable(ROOT_NODE) < cost) {
+      insufficientFunds(cost);
+      await ns.sleep(INTERVAL);
+    }
+  };
+  /** @param {string} hostname */
+  const waitForScripts = async (hostname) => {
+    while (ns.ps(hostname).length > 0) {
+      log(`Can't upgrade ${hostname} as there are scripts running`, 'warning');
+      await ns.sleep(INTERVAL);
+    }
+  };
 
   const maxFleetRam = ns.getPurchasedServerMaxRam();
   const fleetLimit = ns.getPurchasedServerLimit();
@@ -51,12 +70,8 @@ export async function main(ns) {
 
   while (ns.getPurchasedServers().length < fleetLimit) {
     const nextServerName = `${FLEET_PREFIX}-${ns.getPurchasedServers().length}`;
-    const cost = ns.getPurchasedServerCost(firstMachineRam);
     log(`Attempting to purchase ${nextServerName}`);
-    while (ns.getServerMoneyAvailable(ROOT_NODE) < cost) {
-      insufficientFunds(cost);
-      await ns.sleep(INTERVAL);
-    }
+    await waitForMoney(ns.getPurchasedServerCost(firstMachineRam));
     if (ns.purchaseServer(nextServerName, firstMachineRam) === nextServerName) {
       log(`Succesfully purchased ${nextServerName}`, 'success');
     }
@@ -85,14 +100,11 @@ export async function main(ns) {
         continue;
       }
       log(`Attempting to upgrade ${hostname} to ${nextRam}GB RAM`);
-      const cost = ns.getPurchasedServerCost(nextRam);
-      while (ns.getServerMoneyAvailable(ROOT_NODE) < cost) {
-        insufficientFunds(cost);
-        await ns.sleep(INTERVAL);
-      }
-      while (ns.ps(hostname).length > 0) {
-        log(`Can't upgrade ${hostname} as there are scripts running`, 'warning');
-        await ns.sleep(INTERVAL);
+      await waitForMoney(ns.getPurchasedServerCost(nextRam));
+      if (force === true) {
+        ns.killall(hostname);
+      } else {
+        await waitForScripts(hostname);
       }
       if (ns.deleteServer(hostname) === false) {
         throw new Error('Should never get here');
