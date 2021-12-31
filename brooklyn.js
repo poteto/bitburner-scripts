@@ -6,6 +6,7 @@
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
+ * @typedef {{top: number, order: 'asc' | 'desc'}} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -48,23 +49,22 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
   ns.disableLog('sleep');
 
+  /** @type {ScriptOptions} */
+  const { top, order } = ns.flags([
+    ['top', Infinity], // How many of the top targets to cycle through
+    ['order', 'desc'], // What order to sort targets
+  ]);
   const log = createLogger(ns);
-  const currentHost = ns.getHostname();
 
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  if (top < 1) {
+    throw new Error(`top cannot be less than 1, got: ${top}`);
+  }
+
+  /** @param {string} hostname */
   const isHome = (hostname) => hostname === ROOT_NODE;
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  /** @param {string} hostname */
   const isFleet = (hostname) => hostname.startsWith(FLEET_PREFIX);
-  /**
-   * @param {string} hostname
-   * @returns {boolean}
-   */
+  /** @param {string} hostname */
   const isOwned = (hostname) => isHome(hostname) || isFleet(hostname);
 
   /** @param {string} node */
@@ -134,7 +134,7 @@ export async function main(ns) {
         continue;
       }
       ns.rm(script, hostname);
-      await ns.scp(script, currentHost, hostname);
+      await ns.scp(script, ROOT_NODE, hostname);
     }
   };
   /**
@@ -183,20 +183,31 @@ export async function main(ns) {
       traverse(nextNode, depth + 1);
     }
   };
-  const getSortedTargets = () => {
+  /**
+   * @param {number} top
+   * @param {ScriptOptions['order']} order
+   */
+  const getSortedTargets = (top, order) => {
     const sortedTargets = [];
+    let ii = 0;
     for (const nukedNode of nuked) {
+      if (ii >= top) {
+        break;
+      }
       const node = ns.getServer(nukedNode);
       if (node.moneyMax === 0) {
         continue;
       }
       sortedTargets.push(node);
+      ii++;
     }
-    return sortedTargets.sort((a, b) => b.moneyMax - a.moneyMax);
+    return sortedTargets.sort((a, b) =>
+      order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
+    );
   };
 
-  traverse(currentHost);
-  const sortedTargets = getSortedTargets();
+  traverse(ROOT_NODE);
+  const sortedTargets = getSortedTargets(top, order);
   const stack = [];
   let useFirst = true;
   const fleet = [...nuked, ...ns.getPurchasedServers(), ROOT_NODE]
