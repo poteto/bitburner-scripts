@@ -129,7 +129,6 @@ export async function main(ns) {
   /** @param {Server} server */
   const installAgents = async ({ hostname }) => {
     for (const script of AGENT_PAYLOAD) {
-      ns.scriptKill(script, hostname);
       if (isHome(hostname)) {
         continue;
       }
