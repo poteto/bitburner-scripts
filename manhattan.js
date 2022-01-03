@@ -2,7 +2,7 @@
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
- * @typedef {{top: number, order: 'asc' | 'desc'}} ScriptOptions
+ * @typedef {{top: number, order: 'asc' | 'desc', strategy: 'smart' | 'simple'}} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -67,9 +67,10 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { top, order } = ns.flags([
+  const { top, order, strategy } = ns.flags([
     ['top', Infinity], // How many of the top targets to cycle through
     ['order', 'desc'], // What order to sort targets
+    ['strategy', 'smart'], // What strategy to use when calculating threads
   ]);
   const log = createLogger(ns);
 
@@ -391,7 +392,7 @@ export async function main(ns) {
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchGrow = async (controlledServers, destination) => {
+  const dispatchGrowSmart = async (controlledServers, destination) => {
     let growsRemaining = getGrowThreads(destination.hostname);
     let weakensRemaining = getWeakensForGrow(growsRemaining);
     let longestTimeTaken = -Infinity;
@@ -444,7 +445,7 @@ export async function main(ns) {
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchHack = async (controlledServers, destination) => {
+  const dispatchHackSmart = async (controlledServers, destination) => {
     let hacksRemaining = getHackThreads(destination.hostname);
     let weakensRemaining = getWeakensForHack(hacksRemaining);
     let longestTimeTaken = -Infinity;
@@ -492,15 +493,77 @@ export async function main(ns) {
     }
     return longestTimeTaken;
   };
+  /**
+   * @param {Server[]} controlledServers
+   * @param {Server} destination
+   * @returns {Promise<number>}
+   */
+  const dispatchGrowSimple = async (controlledServers, destination) => {
+    const timeTaken = getGrowTime(destination);
+    let growsRemaining = getGrowThreads(destination.hostname);
+    let threadsSpawned = 0;
+    for (const source of controlledServers) {
+      const res = execScript(source, destination, AGENT_GROW_SCRIPT, {
+        threadsNeeded: growsRemaining,
+        instanceId: '0',
+      });
+      if (res != null) {
+        growsRemaining = res.threadsRemaining;
+        threadsSpawned += res.threadsSpawned;
+        if (growsRemaining < 1) {
+          break;
+        }
+      }
+    }
+    log(
+      `  ↳ Growing ${destination.hostname} with ${formatThreads(
+        threadsSpawned
+      )} grow threads in ${ns.tFormat(timeTaken)}`,
+      'success'
+    );
+    return timeTaken;
+  };
+  /**
+   * @param {Server[]} controlledServers
+   * @param {Server} destination
+   * @returns {Promise<number>}
+   */
+  const dispatchHackSimple = async (controlledServers, destination) => {
+    const timeTaken = getHackTime(destination);
+    let hacksRemaining = getHackThreads(destination.hostname);
+    let threadsSpawned = 0;
+    for (const source of controlledServers) {
+      const res = execScript(source, destination, AGENT_HACK_SCRIPT, {
+        threadsNeeded: hacksRemaining,
+        instanceId: '0',
+      });
+      if (res != null) {
+        hacksRemaining = res.threadsRemaining;
+        threadsSpawned += res.threadsSpawned;
+        if (hacksRemaining < 1) {
+          break;
+        }
+      }
+    }
+    log(
+      `  ↳ Hacking ${destination.hostname} with ${formatThreads(
+        threadsSpawned
+      )} hack threads in ${ns.tFormat(timeTaken)}`,
+      'success'
+    );
+    return timeTaken;
+  };
 
   /**
    * Note: This is an infinite loop cycling through servers
    * @param {Server[]} controlledServers
    * @param {Server[]} rankedDestinations
+   * @param {ScriptOptions['strategy']} strategy
    */
   const orchestrateControlledServers = async (
     controlledServers,
-    rankedDestinations
+    rankedDestinations,
+    strategy
   ) => {
     const cycleEnd =
       top === Infinity
@@ -525,12 +588,30 @@ export async function main(ns) {
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        await dispatchGrow(controlledServers, destination);
+        switch (strategy) {
+          case 'smart':
+            await dispatchGrowSmart(controlledServers, destination);
+            break;
+          case 'simple':
+            await dispatchGrowSimple(controlledServers, destination);
+            break;
+          default:
+            throw new Error(`Unknown strategy ${strategy}`);
+        }
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        await dispatchHack(controlledServers, destination);
+        switch (strategy) {
+          case 'smart':
+            await dispatchHackSmart(controlledServers, destination);
+            break;
+          case 'simple':
+            await dispatchHackSimple(controlledServers, destination);
+            break;
+          default:
+            throw new Error(`Unknown strategy ${strategy}`);
+        }
       }
 
       await ns.sleep(LOOP_INTERVAL);
@@ -542,5 +623,9 @@ export async function main(ns) {
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
   await installAgents(controlledServers);
-  await orchestrateControlledServers(controlledServers, rankedDestinations);
+  await orchestrateControlledServers(
+    controlledServers,
+    rankedDestinations,
+    strategy
+  );
 }
