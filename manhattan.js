@@ -34,7 +34,7 @@ function* makeCycle(start, end) {
     if (ii > end) {
       ii = start;
     }
-    yield ++ii;
+    yield ii++;
   }
 }
 

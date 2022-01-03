@@ -22,7 +22,7 @@ const AGENT_PAYLOAD = new Set([
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
 ]);
-const INTERVAL = 3_000;
+const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -188,21 +188,18 @@ export async function main(ns) {
    */
   const getSortedTargets = (top, order) => {
     const sortedTargets = [];
-    let ii = 0;
     for (const nukedNode of nuked) {
-      if (ii >= top) {
-        break;
-      }
       const node = ns.getServer(nukedNode);
       if (node.moneyMax === 0) {
         continue;
       }
       sortedTargets.push(node);
-      ii++;
     }
-    return sortedTargets.sort((a, b) =>
-      order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
-    );
+    return sortedTargets
+      .sort((a, b) =>
+        order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
+      )
+      .slice(0, top);
   };
 
   traverse(ROOT_NODE);
