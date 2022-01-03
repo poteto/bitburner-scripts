@@ -662,7 +662,7 @@ export async function main(ns) {
                 3_600_000)
           )}/hr`,
         ]),
-        maxCellLength: 30,
+        columnLengths: [10, 25, 10, 30, 30, 30, 15],
       })
   );
   await installAgents(controlledServers);
