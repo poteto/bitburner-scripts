@@ -629,8 +629,10 @@ export async function main(ns) {
     [
       rankedDestinations
         .map(
-          (destination) =>
-            `${destination.hostname}: ${formatMoney(destination.moneyMax)}`
+          (destination, index) =>
+            `${ns.nFormat(index, '00')} - ${
+              destination.hostname
+            }: ${formatMoney(destination.moneyMax)}`
         )
         .join('\n'),
     ],
