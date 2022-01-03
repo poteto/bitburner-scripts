@@ -13,7 +13,7 @@ import createLogger from './create-logger.js';
 const LEVEL_INCREMENT = 20;
 const RAM_INCREMENT = 1;
 const CORE_INCREMENT = 1;
-const INTERVAL = 12_000;
+const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {

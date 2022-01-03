@@ -14,7 +14,7 @@ import {
 
 const FLEET_PREFIX = 'fleet-node';
 const ROOT_NODE = 'home';
-const INTERVAL = 12_000;
+const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
