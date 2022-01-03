@@ -643,7 +643,7 @@ export async function main(ns) {
         `${ns.nFormat(index, '00')}`,
         destination.hostname,
         `${formatMoney(destination.moneyMax)}`,
-        `${ns.tFormat(getWeakTime(destination))}`,
+        `${ns.nFormat(getWeakTime(destination), '00:00:00')}`,
       ]),
       maxCellLength: 30,
     }),
