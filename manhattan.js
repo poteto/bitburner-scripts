@@ -31,6 +31,9 @@ const AGENT_PAYLOAD = new Set([
 function* makeCycle(start, end) {
   let ii = start;
   while (true) {
+    if (start === end) {
+      yield start;
+    }
     if (ii > end) {
       ii = start;
     }
@@ -502,7 +505,7 @@ export async function main(ns) {
     const cycleEnd =
       top === Infinity
         ? rankedDestinations.length - 1
-        : Math.min(top, rankedDestinations.length - 1);
+        : Math.min(top - 1, rankedDestinations.length - 1);
     for (const destinationIdx of makeCycle(0, cycleEnd)) {
       const destination = rankedDestinations[destinationIdx];
       if (destination == null) {
