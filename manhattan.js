@@ -520,7 +520,7 @@ export async function main(ns) {
     log(
       `  ↳ Growing ${destination.hostname} with ${formatThreads(
         threadsSpawned
-      )} grow threads in ${ns.tFormat(timeTaken)}`,
+      )} threads in ${ns.tFormat(timeTaken)}`,
       'success'
     );
     return timeTaken;
@@ -550,7 +550,7 @@ export async function main(ns) {
     log(
       `  ↳ Hacking ${destination.hostname} with ${formatThreads(
         threadsSpawned
-      )} hack threads in ${ns.tFormat(timeTaken)}`,
+      )} threads in ${ns.tFormat(timeTaken)}`,
       'success'
     );
     return timeTaken;
