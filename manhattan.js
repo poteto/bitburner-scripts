@@ -21,7 +21,7 @@ const LOOP_INTERVAL = 50;
 const WEAK_AMOUNT = 0.05;
 const DEFAULT_GROW_THREADS = 10_000;
 const DEFAULT_HACK_THREADS = 10_000;
-const DEFAULT_HACK_PERCENT = 50;
+const DEFAULT_HACK_PERCENT = 0.5;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
 export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
@@ -117,15 +117,15 @@ export async function main(ns) {
   };
   /**
    * @param {string} hostname
-   * @param {number} percent
+   * @param {number} targetPercentage
    * @returns {number}
    */
-  const getHackThreads = (hostname, percent) => {
+  const getHackThreads = (hostname, targetPercentage) => {
     const moneyAvail = ns.getServerMoneyAvailable(hostname);
     if (moneyAvail === 0) {
       return 0;
     }
-    const threads = Math.ceil(percent / ns.hackAnalyze(hostname));
+    const threads = Math.ceil(targetPercentage / ns.hackAnalyze(hostname));
     return Math.abs(threads) === Infinity ? DEFAULT_HACK_THREADS : threads;
   };
   /**
