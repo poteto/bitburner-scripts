@@ -638,11 +638,20 @@ export async function main(ns) {
   ns.tprint(
     '\n' +
       formatTable({
-        headers: ['INDEX', 'HOSTNAME', 'MAX MONEY', 'WEAKEN TIME'],
+        headers: [
+          'INDEX',
+          'HOSTNAME',
+          'MAX MONEY',
+          'HACK TIME',
+          'GROW TIME',
+          'WEAKEN TIME',
+        ],
         rows: rankedDestinations.map((destination, index) => [
           `${ns.nFormat(index, '00')}`,
           destination.hostname,
           `${formatMoney(destination.moneyMax)}`,
+          `${ns.tFormat(getHackTime(destination))}`,
+          `${ns.tFormat(getGrowTime(destination))}`,
           `${ns.tFormat(getWeakTime(destination))}`,
         ]),
         maxCellLength: 24,
