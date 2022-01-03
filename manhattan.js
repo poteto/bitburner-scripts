@@ -626,10 +626,14 @@ export async function main(ns) {
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
   await ns.write(
     'ranked-targets.txt',
-    rankedDestinations.map(
-      (destination) =>
-        `${destination.hostname}: ${formatMoney(destination.moneyMax)}`
-    ),
+    [
+      rankedDestinations
+        .map(
+          (destination) =>
+            `${destination.hostname}: ${formatMoney(destination.moneyMax)}`
+        )
+        .join('\n'),
+    ],
     'w'
   );
   await installAgents(controlledServers);
