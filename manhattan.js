@@ -624,6 +624,14 @@ export async function main(ns) {
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
+  await ns.write(
+    'ranked-targets.txt',
+    rankedDestinations.map(
+      (destination) =>
+        `${destination.hostname}: ${formatMoney(destination.moneyMax)}`
+    ),
+    'w'
+  );
   await installAgents(controlledServers);
   await orchestrateControlledServers(
     controlledServers,
