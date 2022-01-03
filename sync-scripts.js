@@ -36,16 +36,13 @@ export async function main(ns) {
     }
     return null;
   };
-  /**
-   * @param {Repo} repo
-   * @param {string} branch
-   */
-  const fetchFiles = async (repo, branch) => {
+  /** @param {Repo} repo */
+  const fetchFiles = async (repo) => {
     for (const file of repo.tree) {
       if (file.type !== 'blob' || file.path.endsWith('.js') === false) {
         continue;
       }
-      const fileUrl = `https://raw.githubusercontent.com/poteto/bitburner-scripts/${branch}/${file.path}`;
+      const fileUrl = `https://raw.githubusercontent.com/poteto/bitburner-scripts/${repo.sha}/${file.path}`;
       if (await ns.wget(fileUrl, file.path)) {
         log(`Synced ${file.path} (${file.sha})`, 'success');
         continue;
@@ -62,9 +59,14 @@ export async function main(ns) {
       return ns.exit();
     }
     if (lastRepoSha !== repo.sha) {
-      await fetchFiles(repo, branch);
+      await fetchFiles(repo);
       lastRepoSha = repo.sha;
-      log(`Sync for branch ${branch} completed at: ${new Date().toLocaleString()}`, 'success');
+      log(
+        `Sync for branch ${branch} (${
+          repo.sha
+        }) completed at: ${new Date().toLocaleString()}`,
+        'success'
+      );
     }
     if (watch === false) {
       return ns.exit();

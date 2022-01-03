@@ -12,6 +12,7 @@
  */
 
 import createLogger from './create-logger.js';
+import formatTable from './format-table.js';
 
 const ROOT_NODE = 'home';
 const FLEET_PREFIX = 'fleet-node';
@@ -634,19 +635,18 @@ export async function main(ns) {
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
-  await ns.write(
-    'ranked-targets.txt',
-    [
-      rankedDestinations
-        .map(
-          (destination, index) =>
-            `${ns.nFormat(index, '00')} - ${
-              destination.hostname
-            }: ${formatMoney(destination.moneyMax)}`
-        )
-        .join('\n'),
-    ],
-    'w'
+  ns.tprint(
+    '\n' +
+      formatTable({
+        headers: ['INDEX', 'HOSTNAME', 'MAX MONEY', 'WEAKEN TIME'],
+        rows: rankedDestinations.map((destination, index) => [
+          `${ns.nFormat(index, '00')}`,
+          destination.hostname,
+          `${formatMoney(destination.moneyMax)}`,
+          `${ns.tFormat(getWeakTime(destination))}`,
+        ]),
+        maxCellLength: 24,
+      })
   );
   await installAgents(controlledServers);
   await orchestrateControlledServers(
