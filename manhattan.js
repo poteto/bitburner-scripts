@@ -2,7 +2,12 @@
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
- * @typedef {{top: number, order: 'asc' | 'desc', strategy: 'smart' | 'simple'}} ScriptOptions
+ * @typedef {{
+ *  start: number,
+ *  end: number,
+ *  order: 'asc' | 'desc',
+ *  strategy: 'smart' | 'simple'
+ * }} ScriptOptions
  */
 
 import createLogger from './create-logger.js';
@@ -67,16 +72,13 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { top, order, strategy } = ns.flags([
-    ['top', Infinity], // How many of the top targets to cycle through
+  const { start, end, order, strategy } = ns.flags([
+    ['start', 0], // Which index to start picking targets
+    ['end', Infinity], // Which index to end picking targets
     ['order', 'desc'], // What order to sort targets
     ['strategy', 'smart'], // What strategy to use when calculating threads
   ]);
   const log = createLogger(ns);
-
-  if (top < 1) {
-    throw new Error(`top cannot be less than 1, got: ${top}`);
-  }
 
   /** @param {number} n */
   const formatThreads = (n) => ns.nFormat(n, '0,0.0a');
@@ -566,10 +568,10 @@ export async function main(ns) {
     strategy
   ) => {
     const cycleEnd =
-      top === Infinity
+      end === Infinity
         ? rankedDestinations.length - 1
-        : Math.min(top - 1, rankedDestinations.length - 1);
-    for (const destinationIdx of makeCycle(0, cycleEnd)) {
+        : Math.min(end, rankedDestinations.length - 1);
+    for (const destinationIdx of makeCycle(start, cycleEnd)) {
       const destination = rankedDestinations[destinationIdx];
       if (destination == null) {
         continue;
