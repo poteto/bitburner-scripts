@@ -635,19 +635,18 @@ export async function main(ns) {
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, order);
-  await ns.write(
-    'ranked-targets.txt',
-    formatTable({
-      headers: ['index', 'hostname', 'max money', 'weaken time'],
-      rows: rankedDestinations.map((destination, index) => [
-        `${ns.nFormat(index, '00')}`,
-        destination.hostname,
-        `${formatMoney(destination.moneyMax)}`,
-        `${ns.nFormat(getWeakTime(destination), '00:00:00')}`,
-      ]),
-      maxCellLength: 30,
-    }),
-    'w'
+  ns.tprint(
+    '\n' +
+      formatTable({
+        headers: ['INDEX', 'HOSTNAME', 'MAX MONEY', 'WEAKEN TIME'],
+        rows: rankedDestinations.map((destination, index) => [
+          `${ns.nFormat(index, '00')}`,
+          destination.hostname,
+          `${formatMoney(destination.moneyMax)}`,
+          `${ns.tFormat(getWeakTime(destination))}`,
+        ]),
+        maxCellLength: 24,
+      })
   );
   await installAgents(controlledServers);
   await orchestrateControlledServers(

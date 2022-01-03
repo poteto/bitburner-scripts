@@ -21,5 +21,5 @@ export default function formatTable({ headers, rows, maxCellLength }) {
     });
     buffer.push(formattedRow.join(''));
   }
-  return [buffer.join('\n')];
+  return buffer.join('\n');
 }
