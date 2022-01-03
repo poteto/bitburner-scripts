@@ -6,7 +6,8 @@
  *  start: number,
  *  end: number,
  *  order: 'asc' | 'desc',
- *  strategy: 'smart' | 'simple'
+ *  strategy: 'smart' | 'simple',
+ *  percent: number
  * }} ScriptOptions
  */
 
@@ -19,6 +20,7 @@ const LOOP_INTERVAL = 50;
 const WEAK_AMOUNT = 0.05;
 const DEFAULT_GROW_THREADS = 10_000;
 const DEFAULT_HACK_THREADS = 10_000;
+const DEFAULT_HACK_PERCENT = 50;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
 export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
@@ -72,11 +74,12 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { start, end, order, strategy } = ns.flags([
+  const { start, end, order, strategy, percent } = ns.flags([
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
     ['order', 'desc'], // What order to sort targets
     ['strategy', 'smart'], // What strategy to use when calculating threads
+    ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
 
@@ -113,14 +116,15 @@ export async function main(ns) {
   };
   /**
    * @param {string} hostname
+   * @param {number} percent
    * @returns {number}
    */
-  const getHackThreads = (hostname) => {
+  const getHackThreads = (hostname, percent) => {
     const moneyAvail = ns.getServerMoneyAvailable(hostname);
     if (moneyAvail === 0) {
       return 0;
     }
-    const threads = Math.ceil(100 / ns.hackAnalyze(hostname));
+    const threads = Math.ceil(percent / ns.hackAnalyze(hostname));
     return Math.abs(threads) === Infinity ? DEFAULT_HACK_THREADS : threads;
   };
   /**
@@ -445,10 +449,11 @@ export async function main(ns) {
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
+   * @param {number} percent
    * @returns {Promise<number>}
    */
-  const dispatchHackSmart = async (controlledServers, destination) => {
-    let hacksRemaining = getHackThreads(destination.hostname);
+  const dispatchHackSmart = async (controlledServers, destination, percent) => {
+    let hacksRemaining = getHackThreads(destination.hostname, percent);
     let weakensRemaining = getWeakensForHack(hacksRemaining);
     let longestTimeTaken = -Infinity;
     while (hacksRemaining > 0) {
@@ -459,7 +464,7 @@ export async function main(ns) {
       if (currentTimeTaken > longestTimeTaken) {
         longestTimeTaken = currentTimeTaken;
       }
-      hacksRemaining = getHackThreads(destination.hostname);
+      hacksRemaining = getHackThreads(destination.hostname, percent);
       weakensRemaining = getWeakensForHack(hacksRemaining);
       if (hacksRemaining === 0) {
         break;
@@ -528,11 +533,16 @@ export async function main(ns) {
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
+   * @param {number} percent
    * @returns {Promise<number>}
    */
-  const dispatchHackSimple = async (controlledServers, destination) => {
+  const dispatchHackSimple = async (
+    controlledServers,
+    destination,
+    percent
+  ) => {
     const timeTaken = getHackTime(destination);
-    let hacksRemaining = getHackThreads(destination.hostname);
+    let hacksRemaining = getHackThreads(destination.hostname, percent);
     let threadsSpawned = 0;
     for (const source of controlledServers) {
       const res = execScript(source, destination, AGENT_HACK_SCRIPT, {
@@ -606,10 +616,10 @@ export async function main(ns) {
         report('HACK', destination);
         switch (strategy) {
           case 'smart':
-            await dispatchHackSmart(controlledServers, destination);
+            await dispatchHackSmart(controlledServers, destination, percent);
             break;
           case 'simple':
-            await dispatchHackSimple(controlledServers, destination);
+            await dispatchHackSimple(controlledServers, destination, percent);
             break;
           default:
             throw new Error(`Unknown strategy ${strategy}`);
