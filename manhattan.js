@@ -79,7 +79,7 @@ export async function main(ns) {
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
     ['order', 'desc'], // What order to sort targets
-    ['strategy', 'smart'], // What strategy to use when calculating threads
+    ['strategy', 'simple'], // What strategy to use when calculating threads
     ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
