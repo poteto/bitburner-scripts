@@ -83,6 +83,7 @@ export async function main(ns) {
     ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
+  const hasFormulas = ns.fileExists('Formulas.exe');
 
   /** @param {number} n */
   const formatThreads = (n) => ns.nFormat(n, '0,0.0a');
@@ -630,6 +631,29 @@ export async function main(ns) {
       await ns.sleep(LOOP_INTERVAL);
     }
   };
+  /**
+   * @param {Server} destination
+   * @param {boolean} hasFormulas
+   */
+  const getEstimatedEfficiency = (destination, hasFormulas) => {
+    const hackTime = getHackTime(destination);
+    const growTime = getGrowTime(destination);
+    const weakTime = getWeakTime(destination);
+    let growPercent = 0;
+    if (hasFormulas) {
+      growPercent = ns.formulas.hacking.growPercent(
+        destination,
+        1,
+        ns.getPlayer()
+      );
+    } else {
+      growPercent = destination.serverGrowth / 100;
+    }
+    return (
+      (destination.moneyMax * growPercent) /
+      ((hackTime + growTime + weakTime) / 1_000)
+    );
+  };
 
   const traverse = createTraversal();
   const nukedHostnames = traverse(ROOT_NODE);
@@ -656,13 +680,7 @@ export async function main(ns) {
           `${ns.tFormat(getGrowTime(destination))}`,
           `${ns.tFormat(getWeakTime(destination))}`,
           `${format2Decimals(destination.serverGrowth)}`,
-          `${formatMoney(
-            (destination.moneyMax * (destination.serverGrowth / 100)) /
-              ((getHackTime(destination) +
-                getGrowTime(destination) +
-                getWeakTime(destination)) /
-                1_000)
-          )}/s`,
+          `${formatMoney(getEstimatedEfficiency(destination, hasFormulas))}/s`,
         ]),
         columnLengths: [6, 25, 10, 30, 30, 30, 10, 15],
       })
