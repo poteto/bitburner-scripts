@@ -645,6 +645,7 @@ export async function main(ns) {
           'HACK TIME',
           'GROW TIME',
           'WEAKEN TIME',
+          'GROW RATE',
           'EFFICIENCY',
         ],
         rows: rankedDestinations.map((destination, index) => [
@@ -654,6 +655,7 @@ export async function main(ns) {
           `${ns.tFormat(getHackTime(destination))}`,
           `${ns.tFormat(getGrowTime(destination))}`,
           `${ns.tFormat(getWeakTime(destination))}`,
+          `${format2Decimals(destination.serverGrowth)}`,
           `${formatMoney(
             destination.moneyMax /
               ((getHackTime(destination) +
@@ -662,7 +664,7 @@ export async function main(ns) {
                 3_600_000)
           )}/hr`,
         ]),
-        columnLengths: [10, 25, 10, 30, 30, 30, 15],
+        columnLengths: [10, 25, 10, 30, 30, 30, 10, 15],
       })
   );
   await installAgents(controlledServers);
