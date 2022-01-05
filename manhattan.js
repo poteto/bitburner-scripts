@@ -78,7 +78,7 @@ export async function main(ns) {
   const { start, end, order, strategy, percent } = ns.flags([
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
-    ['order', 'desc'], // What order to sort targets
+    ['order', 'asc'], // What order to sort targets
     ['strategy', 'simple'], // What strategy to use when calculating threads
     ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
   ]);
