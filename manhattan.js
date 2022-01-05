@@ -661,10 +661,10 @@ export async function main(ns) {
               ((getHackTime(destination) +
                 getGrowTime(destination) +
                 getWeakTime(destination)) /
-                3_600_000)
-          )}/hr`,
+                1_000)
+          )}/s`,
         ]),
-        columnLengths: [10, 25, 10, 30, 30, 30, 10, 15],
+        columnLengths: [6, 25, 10, 30, 30, 30, 10, 15],
       })
   );
   await installAgents(controlledServers);
