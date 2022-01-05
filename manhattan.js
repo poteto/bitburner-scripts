@@ -647,7 +647,6 @@ export async function main(ns) {
           'WEAKEN TIME',
           'GROW RATE',
           'EFFICIENCY',
-          'CPU CORES',
         ],
         rows: rankedDestinations.map((destination, index) => [
           `${ns.nFormat(index, '00')}`,
@@ -664,7 +663,6 @@ export async function main(ns) {
                 getWeakTime(destination)) /
                 1_000)
           )}/s`,
-          `${destination.cpuCores}`,
         ]),
         columnLengths: [6, 25, 10, 30, 30, 30, 10, 15],
       })
