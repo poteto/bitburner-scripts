@@ -657,7 +657,7 @@ export async function main(ns) {
           `${ns.tFormat(getWeakTime(destination))}`,
           `${format2Decimals(destination.serverGrowth)}`,
           `${formatMoney(
-            destination.moneyMax /
+            (destination.moneyMax * (destination.serverGrowth / 100)) /
               ((getHackTime(destination) +
                 getGrowTime(destination) +
                 getWeakTime(destination)) /
