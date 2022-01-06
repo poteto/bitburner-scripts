@@ -10,10 +10,10 @@ import {
   AGENT_GROW_SCRIPT,
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
-} from './manhattan.js';
+  FLEET_PREFIX,
+  ROOT_NODE,
+} from './constants';
 
-const FLEET_PREFIX = 'fleet-node';
-const ROOT_NODE = 'home';
 const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
