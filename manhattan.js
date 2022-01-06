@@ -6,7 +6,6 @@
  *  start: number,
  *  end: number,
  *  order: 'asc' | 'desc',
- *  strategy: 'smart' | 'simple',
  *  percent: number
  * }} ScriptOptions
  */
@@ -74,11 +73,10 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { start, end, order, strategy, percent } = ns.flags([
+  const { start, end, order, percent } = ns.flags([
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
     ['order', 'asc'], // What order to sort targets
-    ['strategy', 'simple'], // What strategy to use when calculating threads
     ['percent', 0.5], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
@@ -571,12 +569,10 @@ export async function main(ns) {
    * Note: This is an infinite loop cycling through servers
    * @param {Server[]} controlledServers
    * @param {Server[]} rankedDestinations
-   * @param {ScriptOptions['strategy']} strategy
    */
   const orchestrateControlledServers = async (
     controlledServers,
-    rankedDestinations,
-    strategy
+    rankedDestinations
   ) => {
     const cycleEnd =
       end === Infinity
@@ -601,30 +597,12 @@ export async function main(ns) {
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        switch (strategy) {
-          case 'smart':
-            await dispatchGrowSmart(controlledServers, destination);
-            break;
-          case 'simple':
-            await dispatchGrowSimple(controlledServers, destination);
-            break;
-          default:
-            throw new Error(`Unknown strategy ${strategy}`);
-        }
+        await dispatchGrowSimple(controlledServers, destination);
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        switch (strategy) {
-          case 'smart':
-            await dispatchHackSmart(controlledServers, destination, percent);
-            break;
-          case 'simple':
-            await dispatchHackSimple(controlledServers, destination, percent);
-            break;
-          default:
-            throw new Error(`Unknown strategy ${strategy}`);
-        }
+        await dispatchHackSimple(controlledServers, destination, percent);
       }
 
       await ns.sleep(LOOP_INTERVAL);
@@ -685,9 +663,5 @@ export async function main(ns) {
       })
   );
   await installAgents(controlledServers);
-  await orchestrateControlledServers(
-    controlledServers,
-    rankedDestinations,
-    strategy
-  );
+  await orchestrateControlledServers(controlledServers, rankedDestinations);
 }
