@@ -81,7 +81,7 @@ export async function main(ns) {
     ['percent', 0.5], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
-  const hasFormulas = ns.fileExists('Formulas.exe');
+  const HAS_FORMULAS = ns.fileExists('Formulas.exe');
 
   /** @param {number} n */
   const formatThreads = (n) => ns.nFormat(n, '0,0.0a');
@@ -262,7 +262,7 @@ export async function main(ns) {
   const getRank = (destination, player) => {
     switch (FLAGS.strategy) {
       case 'efficiency':
-        return getEstimatedEfficiency(destination, player, hasFormulas);
+        return getEstimatedEfficiency(destination, player, HAS_FORMULAS);
       case 'maxmoney':
         return destination.moneyMax;
       default:
@@ -603,19 +603,19 @@ export async function main(ns) {
           `${formatMoney(destination.moneyMax)}`,
           `${destination.serverGrowth}`,
           `${ns.tFormat(
-            getEstimatedGrowTime(destination, player, hasFormulas)
+            getEstimatedGrowTime(destination, player, HAS_FORMULAS)
           )}`,
           `${ns.tFormat(
-            getEstimatedHackTime(destination, player, hasFormulas)
+            getEstimatedHackTime(destination, player, HAS_FORMULAS)
           )}`,
           `${ns.tFormat(
-            getEstimatedWeakTime(destination, player, hasFormulas)
+            getEstimatedWeakTime(destination, player, HAS_FORMULAS)
           )}`,
           `${ns.tFormat(
-            getEstimatedPrimeTime(destination, player, hasFormulas)
+            getEstimatedPrimeTime(destination, player, HAS_FORMULAS)
           )}`,
           `${formatMoney(
-            getEstimatedEfficiency(destination, player, hasFormulas)
+            getEstimatedEfficiency(destination, player, HAS_FORMULAS)
           )}/s`,
         ]),
         columnLengths: [6, 25, 10, 10, 30, 30, 30, 30, 15],
