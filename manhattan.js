@@ -416,12 +416,14 @@ export async function main(ns) {
         }
       }
     }
-    log(
-      `  ↳ Growing ${destination.hostname} with ${formatThreads(
-        threadsSpawned
-      )} threads in ${ns.tFormat(timeTaken)}`,
-      'success'
-    );
+    if (threadsSpawned > 0) {
+      log(
+        `  ↳ Growing ${destination.hostname} with ${formatThreads(
+          threadsSpawned
+        )} threads in ${ns.tFormat(timeTaken)}`,
+        'success'
+      );
+    }
     return threadsSpawned;
   };
   /**
@@ -446,12 +448,14 @@ export async function main(ns) {
         }
       }
     }
-    log(
-      `  ↳ Hacking ${destination.hostname} with ${formatThreads(
-        threadsSpawned
-      )} threads in ${ns.tFormat(timeTaken)}`,
-      'success'
-    );
+    if (threadsSpawned > 0) {
+      log(
+        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
+          threadsSpawned
+        )} threads in ${ns.tFormat(timeTaken)}`,
+        'success'
+      );
+    }
     return threadsSpawned;
   };
 
