@@ -6,30 +6,26 @@
  *  start: number,
  *  end: number,
  *  order: 'asc' | 'desc',
- *  strategy: 'smart' | 'simple',
  *  percent: number
  * }} ScriptOptions
  */
 
-import createLogger from './create-logger.js';
-import formatTable from './format-table.js';
-
-const ROOT_NODE = 'home';
-const FLEET_PREFIX = 'fleet-node';
-const DISPATCH_INTERVAL = 50;
-const LOOP_INTERVAL = 50;
-const WEAK_AMOUNT = 0.05;
-const DEFAULT_GROW_THREADS = 10_000;
-const DEFAULT_HACK_THREADS = 10_000;
-const DEFAULT_HACK_PERCENT = 0.5;
-export const AGENT_GROW_SCRIPT = 'agent-grow.js';
-export const AGENT_HACK_SCRIPT = 'agent-hack.js';
-export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
-const AGENT_PAYLOAD = new Set([
+import {
   AGENT_GROW_SCRIPT,
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
-]);
+  AGENT_PAYLOAD,
+  ROOT_NODE,
+  WEAK_AMOUNT,
+} from './constants.js';
+import createLogger from './create-logger.js';
+import formatTable from './format-table.js';
+import { isHome, isOwned } from './utils.js';
+
+const DISPATCH_INTERVAL = 50;
+const LOOP_INTERVAL = 50;
+const DEFAULT_GROW_THREADS = 10_000;
+const DEFAULT_HACK_THREADS = 10_000;
 
 /**
  * @param {number} start
@@ -75,12 +71,11 @@ export async function main(ns) {
   ns.disableLog('sqlinject');
 
   /** @type {ScriptOptions} */
-  const { start, end, order, strategy, percent } = ns.flags([
+  const FLAGS = ns.flags([
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
     ['order', 'asc'], // What order to sort targets
-    ['strategy', 'simple'], // What strategy to use when calculating threads
-    ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
+    ['percent', 0.5], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
   const hasFormulas = ns.fileExists('Formulas.exe');
@@ -93,13 +88,6 @@ export async function main(ns) {
   const format2Decimals = (n) => ns.nFormat(n, '0,0.00');
   /** @param {number} n */
   const formatPercent = (n) => ns.nFormat(n, '000.0%');
-
-  /** @param {string} hostname */
-  const isHome = (hostname) => hostname === ROOT_NODE;
-  /** @param {string} hostname */
-  const isFleet = (hostname) => hostname.startsWith(FLEET_PREFIX);
-  /** @param {string} hostname */
-  const isOwned = (hostname) => isHome(hostname) || isFleet(hostname);
 
   /**
    * @param {string} hostname
@@ -118,15 +106,14 @@ export async function main(ns) {
   };
   /**
    * @param {string} hostname
-   * @param {number} targetPercentage
    * @returns {number}
    */
-  const getHackThreads = (hostname, targetPercentage) => {
+  const getHackThreads = (hostname) => {
     const moneyAvail = ns.getServerMoneyAvailable(hostname);
     if (moneyAvail === 0) {
       return 0;
     }
-    const threads = Math.ceil(targetPercentage / ns.hackAnalyze(hostname));
+    const threads = Math.ceil(FLAGS.percent / ns.hackAnalyze(hostname));
     return Math.abs(threads) === Infinity ? DEFAULT_HACK_THREADS : threads;
   };
   /**
@@ -139,12 +126,6 @@ export async function main(ns) {
         ns.getServerMinSecurityLevel(hostname)) /
         WEAK_AMOUNT
     );
-  /** @param {number} growsRemaining */
-  const getWeakensForGrow = (growsRemaining) =>
-    Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
-  /** @param {number} hacksRemaining */
-  const getWeakensForHack = (hacksRemaining) =>
-    Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 
   /**
    * @param {Server} destination
@@ -288,10 +269,9 @@ export async function main(ns) {
       });
   /**
    * @param {Set<string>} nukedHostnames
-   * @param {ScriptOptions['order']} order
    * @returns {Server[]}
    */
-  const getRankedDestinations = (nukedHostnames, order) => {
+  const getRankedDestinations = (nukedHostnames) => {
     const rankedDestinations = [];
     for (const hostname of nukedHostnames) {
       const server = ns.getServer(hostname);
@@ -301,7 +281,7 @@ export async function main(ns) {
       rankedDestinations.push(server);
     }
     return rankedDestinations.sort((a, b) =>
-      order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
+      FLAGS.order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
     );
   };
 
@@ -400,114 +380,7 @@ export async function main(ns) {
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchGrowSmart = async (controlledServers, destination) => {
-    let growsRemaining = getGrowThreads(destination.hostname);
-    let weakensRemaining = getWeakensForGrow(growsRemaining);
-    let longestTimeTaken = -Infinity;
-    while (growsRemaining > 0) {
-      const currentTimeTaken = Math.max(
-        getGrowTime(destination),
-        getWeakTime(destination)
-      );
-      if (currentTimeTaken > longestTimeTaken) {
-        longestTimeTaken = currentTimeTaken;
-      }
-      growsRemaining = getGrowThreads(destination.hostname);
-      weakensRemaining = getWeakensForGrow(growsRemaining);
-      if (growsRemaining === 0) {
-        break;
-      }
-      log(
-        `  ↳ Growing ${destination.hostname} with ${formatThreads(
-          growsRemaining
-        )} grow threads and ${formatThreads(
-          weakensRemaining
-        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
-        'success'
-      );
-      for (const source of controlledServers) {
-        const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
-          threadsNeeded: weakensRemaining,
-          instanceId: '0',
-        });
-        if (weakRes != null) {
-          weakensRemaining = weakRes.threadsRemaining;
-        }
-        const growRes = execScript(source, destination, AGENT_GROW_SCRIPT, {
-          threadsNeeded: growsRemaining,
-          instanceId: '0',
-        });
-        if (growRes != null) {
-          growsRemaining = growRes.threadsRemaining;
-          if (growsRemaining < 1) {
-            break;
-          }
-        }
-      }
-      await ns.sleep(DISPATCH_INTERVAL);
-    }
-    return longestTimeTaken;
-  };
-  /**
-   * @param {Server[]} controlledServers
-   * @param {Server} destination
-   * @param {number} percent
-   * @returns {Promise<number>}
-   */
-  const dispatchHackSmart = async (controlledServers, destination, percent) => {
-    let hacksRemaining = getHackThreads(destination.hostname, percent);
-    let weakensRemaining = getWeakensForHack(hacksRemaining);
-    let longestTimeTaken = -Infinity;
-    while (hacksRemaining > 0) {
-      const currentTimeTaken = Math.max(
-        getHackTime(destination),
-        getWeakTime(destination)
-      );
-      if (currentTimeTaken > longestTimeTaken) {
-        longestTimeTaken = currentTimeTaken;
-      }
-      hacksRemaining = getHackThreads(destination.hostname, percent);
-      weakensRemaining = getWeakensForHack(hacksRemaining);
-      if (hacksRemaining === 0) {
-        break;
-      }
-      log(
-        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
-          hacksRemaining
-        )} hack threads and ${formatThreads(
-          weakensRemaining
-        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
-        'success'
-      );
-      for (const source of controlledServers) {
-        const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
-          threadsNeeded: weakensRemaining,
-          instanceId: '0',
-        });
-        if (weakRes != null) {
-          weakensRemaining = weakRes.threadsRemaining;
-        }
-        const hackRes = execScript(source, destination, AGENT_HACK_SCRIPT, {
-          threadsNeeded: hacksRemaining,
-          instanceId: '0',
-        });
-        if (hackRes != null) {
-          hacksRemaining = hackRes.threadsRemaining;
-          if (hacksRemaining < 1) {
-            break;
-          }
-        }
-      }
-      await ns.sleep(DISPATCH_INTERVAL);
-    }
-    return longestTimeTaken;
-  };
-  /**
-   * @param {Server[]} controlledServers
-   * @param {Server} destination
-   * @returns {Promise<number>}
-   */
-  const dispatchGrowSimple = async (controlledServers, destination) => {
+  const dispatchGrow = async (controlledServers, destination) => {
     const timeTaken = getGrowTime(destination);
     let growsRemaining = getGrowThreads(destination.hostname);
     let threadsSpawned = 0;
@@ -535,16 +408,11 @@ export async function main(ns) {
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
-   * @param {number} percent
    * @returns {Promise<number>}
    */
-  const dispatchHackSimple = async (
-    controlledServers,
-    destination,
-    percent
-  ) => {
+  const dispatchHack = async (controlledServers, destination) => {
     const timeTaken = getHackTime(destination);
-    let hacksRemaining = getHackThreads(destination.hostname, percent);
+    let hacksRemaining = getHackThreads(destination.hostname);
     let threadsSpawned = 0;
     for (const source of controlledServers) {
       const res = execScript(source, destination, AGENT_HACK_SCRIPT, {
@@ -572,18 +440,16 @@ export async function main(ns) {
    * Note: This is an infinite loop cycling through servers
    * @param {Server[]} controlledServers
    * @param {Server[]} rankedDestinations
-   * @param {ScriptOptions['strategy']} strategy
    */
   const orchestrateControlledServers = async (
     controlledServers,
-    rankedDestinations,
-    strategy
+    rankedDestinations
   ) => {
     const cycleEnd =
-      end === Infinity
+      FLAGS.end === Infinity
         ? rankedDestinations.length - 1
-        : Math.min(end, rankedDestinations.length - 1);
-    for (const destinationIdx of makeCycle(start, cycleEnd)) {
+        : Math.min(FLAGS.end, rankedDestinations.length - 1);
+    for (const destinationIdx of makeCycle(FLAGS.start, cycleEnd)) {
       const destination = rankedDestinations[destinationIdx];
       if (destination == null) {
         continue;
@@ -602,30 +468,12 @@ export async function main(ns) {
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        switch (strategy) {
-          case 'smart':
-            await dispatchGrowSmart(controlledServers, destination);
-            break;
-          case 'simple':
-            await dispatchGrowSimple(controlledServers, destination);
-            break;
-          default:
-            throw new Error(`Unknown strategy ${strategy}`);
-        }
+        await dispatchGrow(controlledServers, destination);
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        switch (strategy) {
-          case 'smart':
-            await dispatchHackSmart(controlledServers, destination, percent);
-            break;
-          case 'simple':
-            await dispatchHackSimple(controlledServers, destination, percent);
-            break;
-          default:
-            throw new Error(`Unknown strategy ${strategy}`);
-        }
+        await dispatchHack(controlledServers, destination);
       }
 
       await ns.sleep(LOOP_INTERVAL);
@@ -635,17 +483,57 @@ export async function main(ns) {
    * @param {Server} destination
    * @param {boolean} hasFormulas
    */
+  const getEstimatedGrowTime = (destination, hasFormulas) => {
+    if (hasFormulas) {
+      const player = ns.getPlayer();
+      const mockServer = Object.assign({}, destination);
+      mockServer.moneyAvailable = destination.moneyMax * FLAGS.percent;
+      mockServer.hackDifficulty = destination.minDifficulty;
+      return ns.formulas.hacking.growTime(mockServer, player);
+    }
+    return getGrowTime(destination);
+  };
+  /**
+   * @param {Server} destination
+   * @param {boolean} hasFormulas
+   */
+  const getEstimatedHackTime = (destination, hasFormulas) => {
+    if (hasFormulas) {
+      const player = ns.getPlayer();
+      const mockServer = Object.assign({}, destination);
+      mockServer.hackDifficulty = destination.minDifficulty;
+      mockServer.moneyAvailable = destination.moneyMax;
+      return ns.formulas.hacking.hackTime(mockServer, player);
+    }
+    return getWeakTime(destination);
+  };
+  /**
+   * @param {Server} destination
+   * @param {boolean} hasFormulas
+   */
+  const getEstimatedWeakTime = (destination, hasFormulas) => {
+    if (hasFormulas) {
+      const player = ns.getPlayer();
+      const mockServer = Object.assign({}, destination);
+      mockServer.hackDifficulty = destination.baseDifficulty;
+      return ns.formulas.hacking.weakenTime(mockServer, player);
+    }
+    return getWeakTime(destination);
+  };
+  /** @param {Server} destination */
+  const getGrowPercent = (destination) =>
+    ns.formulas.hacking.growPercent(destination, 1, ns.getPlayer());
+  /**
+   * @param {Server} destination
+   * @param {boolean} hasFormulas
+   */
   const getEstimatedEfficiency = (destination, hasFormulas) => {
-    const hackTime = getHackTime(destination);
-    const growTime = getGrowTime(destination);
-    const weakTime = getWeakTime(destination);
+    const hackTime = getEstimatedHackTime(destination, hasFormulas);
+    const growTime = getEstimatedGrowTime(destination, hasFormulas);
+    const weakTime = getEstimatedWeakTime(destination, hasFormulas);
     let growPercent = 0;
     if (hasFormulas) {
-      growPercent = ns.formulas.hacking.growPercent(
-        destination,
-        1,
-        ns.getPlayer()
-      );
+      growPercent = getGrowPercent(destination);
     } else {
       growPercent = destination.serverGrowth / 100;
     }
@@ -658,7 +546,7 @@ export async function main(ns) {
   const traverse = createTraversal();
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
-  const rankedDestinations = getRankedDestinations(nukedHostnames, order);
+  const rankedDestinations = getRankedDestinations(nukedHostnames);
   ns.tprint(
     '\n' +
       formatTable({
@@ -666,29 +554,25 @@ export async function main(ns) {
           'INDEX',
           'HOSTNAME',
           'MAX MONEY',
-          'HACK TIME',
-          'GROW TIME',
-          'WEAKEN TIME',
           'GROW RATE',
-          'EFFICIENCY',
+          'EST. HACK TIME',
+          'EST. GROW TIME',
+          'EST. WEAKEN TIME',
+          'EST. EFFICIENCY',
         ],
         rows: rankedDestinations.map((destination, index) => [
           `${ns.nFormat(index, '00')}`,
           destination.hostname,
           `${formatMoney(destination.moneyMax)}`,
-          `${ns.tFormat(getHackTime(destination))}`,
-          `${ns.tFormat(getGrowTime(destination))}`,
-          `${ns.tFormat(getWeakTime(destination))}`,
-          `${format2Decimals(destination.serverGrowth)}`,
+          `${destination.serverGrowth}`,
+          `${ns.tFormat(getEstimatedHackTime(destination, hasFormulas))}`,
+          `${ns.tFormat(getEstimatedGrowTime(destination, hasFormulas))}`,
+          `${ns.tFormat(getEstimatedWeakTime(destination, hasFormulas))}`,
           `${formatMoney(getEstimatedEfficiency(destination, hasFormulas))}/s`,
         ]),
-        columnLengths: [6, 25, 10, 30, 30, 30, 10, 15],
+        columnLengths: [6, 25, 10, 10, 30, 30, 30, 15],
       })
   );
   await installAgents(controlledServers);
-  await orchestrateControlledServers(
-    controlledServers,
-    rankedDestinations,
-    strategy
-  );
+  await orchestrateControlledServers(controlledServers, rankedDestinations);
 }

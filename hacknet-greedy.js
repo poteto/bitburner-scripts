@@ -8,6 +8,7 @@
  * @typedef { import('./bitburner.d').NS } NS
  */
 
+import { ROOT_NODE } from './constants.js';
 import createLogger from './create-logger.js';
 
 const LEVEL_INCREMENT = 20;
@@ -27,7 +28,7 @@ export async function main(ns) {
   const insufficientFunds = async (cost) =>
     log(
       `Need: ${ns.nFormat(cost, '($0.00a)')}, have: ${ns.nFormat(
-        ns.getServerMoneyAvailable('home'),
+        ns.getServerMoneyAvailable(ROOT_NODE),
         '($0.00a)'
       )}`,
       'warning'
@@ -68,7 +69,7 @@ export async function main(ns) {
       log(
         `Found cheapest upgrade: hacknet-node-${cheapest.index}, ${cheapest.name}`
       );
-      while (ns.getServerMoneyAvailable('home') < cheapest.cost) {
+      while (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
         await insufficientFunds(cheapest.cost);
         await ns.sleep(INTERVAL);
       }
@@ -76,7 +77,10 @@ export async function main(ns) {
         case 'node':
           const nextNodeIndex = ns.hacknet.purchaseNode();
           if (nextNodeIndex !== -1) {
-            log(`Successfully purchased hacknet-node-${nextNodeIndex}`, 'success');
+            log(
+              `Successfully purchased hacknet-node-${nextNodeIndex}`,
+              'success'
+            );
           }
           break;
         case 'level':
