@@ -1,12 +1,14 @@
 /**
  * @typedef { import('./bitburner.d').NS } NS
  * @typedef { import('./bitburner.d').Server } Server
+ * @typedef { import('./bitburner.d').Player } Player
  * @typedef {AGENT_GROW_SCRIPT | AGENT_HACK_SCRIPT | AGENT_WEAK_SCRIPT} AgentScript
  * @typedef {{
  *  start: number,
  *  end: number,
  *  order: 'asc' | 'desc',
  *  percent: number
+ *  strategy: 'efficiency' | 'maxmoney'
  * }} ScriptOptions
  */
 
@@ -75,6 +77,7 @@ export async function main(ns) {
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
     ['order', 'asc'], // What order to sort targets
+    ['strategy', 'efficiency'], // What strategy to use when sorting targets
     ['percent', 0.5], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
@@ -170,17 +173,17 @@ export async function main(ns) {
 
   /**
    * @param {string} hostname
+   * @param {Player} player
    * @returns {boolean}
    */
-  const tryNuke = (hostname) => {
+  const tryNuke = (hostname, player) => {
     if (isOwned(hostname)) {
       return false;
     }
 
     const server = ns.getServer(hostname);
-    const user = ns.getPlayer();
 
-    if (user.hacking < server.requiredHackingSkill) {
+    if (player.hacking < server.requiredHackingSkill) {
       return false;
     }
 
@@ -229,7 +232,8 @@ export async function main(ns) {
       }
     }
   };
-  const createTraversal = () => {
+  /** @param {Player} player */
+  const createTraversal = (player) => {
     const visited = new Set();
     const nukedHostnames = new Set();
     /**
@@ -243,13 +247,27 @@ export async function main(ns) {
           continue;
         }
         visited.add(nextHostname);
-        if (tryNuke(nextHostname) === true) {
+        if (tryNuke(nextHostname, player) === true) {
           nukedHostnames.add(nextHostname);
         }
         traverse(nextHostname, depth + 1);
       }
       return nukedHostnames;
     };
+  };
+  /**
+   * @param {Server} destination
+   * @param {Player} player
+   */
+  const getRank = (destination, player) => {
+    switch (FLAGS.strategy) {
+      case 'efficiency':
+        return getEstimatedEfficiency(destination, player, hasFormulas);
+      case 'maxmoney':
+        return destination.moneyMax;
+      default:
+        throw new Error(`Unhandled sort strategy ${FLAGS.strategy}`);
+    }
   };
   /**
    * @param {Set<string>} nukedHostnames
@@ -269,9 +287,10 @@ export async function main(ns) {
       });
   /**
    * @param {Set<string>} nukedHostnames
+   * @param {Player} player
    * @returns {Server[]}
    */
-  const getRankedDestinations = (nukedHostnames) => {
+  const getRankedDestinations = (nukedHostnames, player) => {
     const rankedDestinations = [];
     for (const hostname of nukedHostnames) {
       const server = ns.getServer(hostname);
@@ -281,7 +300,9 @@ export async function main(ns) {
       rankedDestinations.push(server);
     }
     return rankedDestinations.sort((a, b) =>
-      FLAGS.order === 'desc' ? b.moneyMax - a.moneyMax : a.moneyMax - b.moneyMax
+      FLAGS.order === 'desc'
+        ? getRank(b, player) - getRank(a, player)
+        : getRank(a, player) - getRank(b, player)
     );
   };
 
@@ -479,16 +500,13 @@ export async function main(ns) {
       await ns.sleep(LOOP_INTERVAL);
     }
   };
-  /** @param {Server} destination */
-  const getGrowPercent = (destination) =>
-    ns.formulas.hacking.growPercent(destination, 1, ns.getPlayer());
   /**
    * @param {Server} destination
+   * @param {Player} player
    * @param {boolean} hasFormulas
    */
-  const getEstimatedGrowTime = (destination, hasFormulas) => {
+  const getEstimatedGrowTime = (destination, player, hasFormulas) => {
     if (hasFormulas) {
-      const player = ns.getPlayer();
       const mockServer = Object.assign({}, destination);
       mockServer.moneyAvailable = destination.moneyMax * FLAGS.percent;
       mockServer.hackDifficulty = destination.minDifficulty;
@@ -498,11 +516,11 @@ export async function main(ns) {
   };
   /**
    * @param {Server} destination
+   * @param {Player} player
    * @param {boolean} hasFormulas
    */
-  const getEstimatedHackTime = (destination, hasFormulas) => {
+  const getEstimatedHackTime = (destination, player, hasFormulas) => {
     if (hasFormulas) {
-      const player = ns.getPlayer();
       const mockServer = Object.assign({}, destination);
       mockServer.hackDifficulty = destination.minDifficulty;
       mockServer.moneyAvailable = destination.moneyMax;
@@ -512,11 +530,11 @@ export async function main(ns) {
   };
   /**
    * @param {Server} destination
+   * @param {Player} player
    * @param {boolean} hasFormulas
    */
-  const getEstimatedWeakTime = (destination, hasFormulas) => {
+  const getEstimatedWeakTime = (destination, player, hasFormulas) => {
     if (hasFormulas) {
-      const player = ns.getPlayer();
       const mockServer = Object.assign({}, destination);
       mockServer.hackDifficulty = destination.minDifficulty;
       return ns.formulas.hacking.weakenTime(mockServer, player);
@@ -525,11 +543,11 @@ export async function main(ns) {
   };
   /**
    * @param {Server} destination
+   * @param {Player} player
    * @param {boolean} hasFormulas
    */
-  const getEstimatedPrimeTime = (destination, hasFormulas) => {
+  const getEstimatedPrimeTime = (destination, player, hasFormulas) => {
     if (hasFormulas) {
-      const player = ns.getPlayer();
       const mockServer = Object.assign({}, destination);
       mockServer.hackDifficulty = destination.baseDifficulty;
       return (
@@ -541,15 +559,16 @@ export async function main(ns) {
   };
   /**
    * @param {Server} destination
+   * @param {Player} player
    * @param {boolean} hasFormulas
    */
-  const getEstimatedEfficiency = (destination, hasFormulas) => {
-    const hackTime = getEstimatedHackTime(destination, hasFormulas);
-    const growTime = getEstimatedGrowTime(destination, hasFormulas);
-    const weakTime = getEstimatedWeakTime(destination, hasFormulas);
+  const getEstimatedEfficiency = (destination, player, hasFormulas) => {
+    const growTime = getEstimatedGrowTime(destination, player, hasFormulas);
+    const hackTime = getEstimatedHackTime(destination, player, hasFormulas);
+    const weakTime = getEstimatedWeakTime(destination, player, hasFormulas);
     let growPercent = 0;
     if (hasFormulas) {
-      growPercent = getGrowPercent(destination);
+      growPercent = ns.formulas.hacking.growPercent(destination, 1, player);
     } else {
       growPercent = destination.serverGrowth / 100;
     }
@@ -559,10 +578,11 @@ export async function main(ns) {
     );
   };
 
-  const traverse = createTraversal();
+  const player = ns.getPlayer();
+  const traverse = createTraversal(player);
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
-  const rankedDestinations = getRankedDestinations(nukedHostnames);
+  const rankedDestinations = getRankedDestinations(nukedHostnames, player);
   ns.tprint(
     '\n' +
       formatTable({
@@ -582,11 +602,21 @@ export async function main(ns) {
           destination.hostname,
           `${formatMoney(destination.moneyMax)}`,
           `${destination.serverGrowth}`,
-          `${ns.tFormat(getEstimatedGrowTime(destination, hasFormulas))}`,
-          `${ns.tFormat(getEstimatedHackTime(destination, hasFormulas))}`,
-          `${ns.tFormat(getEstimatedWeakTime(destination, hasFormulas))}`,
-          `${ns.tFormat(getEstimatedPrimeTime(destination, hasFormulas))}`,
-          `${formatMoney(getEstimatedEfficiency(destination, hasFormulas))}/s`,
+          `${ns.tFormat(
+            getEstimatedGrowTime(destination, player, hasFormulas)
+          )}`,
+          `${ns.tFormat(
+            getEstimatedHackTime(destination, player, hasFormulas)
+          )}`,
+          `${ns.tFormat(
+            getEstimatedWeakTime(destination, player, hasFormulas)
+          )}`,
+          `${ns.tFormat(
+            getEstimatedPrimeTime(destination, player, hasFormulas)
+          )}`,
+          `${formatMoney(
+            getEstimatedEfficiency(destination, player, hasFormulas)
+          )}/s`,
         ]),
         columnLengths: [6, 25, 10, 10, 30, 30, 30, 30, 15],
       })
