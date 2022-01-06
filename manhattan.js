@@ -368,12 +368,9 @@ export async function main(ns) {
    */
   const dispatchWeak = async (controlledServers, destination) => {
     let weakensRemaining = getWeakThreads(destination.hostname);
-    let longestTimeTaken = -Infinity;
+    let threadsSpawned = 0;
     while (weakensRemaining > 0) {
       const currentTimeTaken = getWeakTime(destination);
-      if (currentTimeTaken > longestTimeTaken) {
-        longestTimeTaken = currentTimeTaken;
-      }
       log(
         `  ↳ Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
@@ -387,6 +384,7 @@ export async function main(ns) {
         });
         if (res != null) {
           weakensRemaining = res.threadsRemaining;
+          threadsSpawned += res.threadsSpawned;
           if (weakensRemaining < 1) {
             break;
           }
@@ -394,7 +392,7 @@ export async function main(ns) {
       }
       await ns.sleep(DISPATCH_INTERVAL);
     }
-    return longestTimeTaken;
+    return threadsSpawned;
   };
   /**
    * @param {Server[]} controlledServers
@@ -424,7 +422,7 @@ export async function main(ns) {
       )} threads in ${ns.tFormat(timeTaken)}`,
       'success'
     );
-    return timeTaken;
+    return threadsSpawned;
   };
   /**
    * @param {Server[]} controlledServers
@@ -454,7 +452,7 @@ export async function main(ns) {
       )} threads in ${ns.tFormat(timeTaken)}`,
       'success'
     );
-    return timeTaken;
+    return threadsSpawned;
   };
 
   /**
@@ -483,18 +481,21 @@ export async function main(ns) {
       );
 
       if (minSecurityLevel < securityLevel) {
-        report('WEAK', destination);
-        await dispatchWeak(controlledServers, destination);
+        if ((await dispatchWeak(controlledServers, destination)) > 0) {
+          report('WEAK', destination);
+        }
       }
 
       if (moneyAvail < moneyMax) {
-        report('GROW', destination);
-        await dispatchGrow(controlledServers, destination);
+        if ((await dispatchGrow(controlledServers, destination)) > 0) {
+          report('GROW', destination);
+        }
       }
 
       if (moneyAvail === moneyMax) {
-        report('HACK', destination);
-        await dispatchHack(controlledServers, destination);
+        if ((await dispatchHack(controlledServers, destination)) > 0) {
+          report('HACK', destination);
+        }
       }
 
       await ns.sleep(LOOP_INTERVAL);
