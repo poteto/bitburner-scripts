@@ -21,7 +21,6 @@ const LOOP_INTERVAL = 50;
 const WEAK_AMOUNT = 0.05;
 const DEFAULT_GROW_THREADS = 10_000;
 const DEFAULT_HACK_THREADS = 10_000;
-const DEFAULT_HACK_PERCENT = 0.5;
 export const AGENT_GROW_SCRIPT = 'agent-grow.js';
 export const AGENT_HACK_SCRIPT = 'agent-hack.js';
 export const AGENT_WEAK_SCRIPT = 'agent-weak.js';
@@ -80,7 +79,7 @@ export async function main(ns) {
     ['end', Infinity], // Which index to end picking targets
     ['order', 'asc'], // What order to sort targets
     ['strategy', 'simple'], // What strategy to use when calculating threads
-    ['percent', DEFAULT_HACK_PERCENT], // What percent to hack servers to
+    ['percent', 0.5], // What percent to hack servers to
   ]);
   const log = createLogger(ns);
   const hasFormulas = ns.fileExists('Formulas.exe');
