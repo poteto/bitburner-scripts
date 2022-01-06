@@ -76,7 +76,7 @@ export async function main(ns) {
   const FLAGS = ns.flags([
     ['start', 0], // Which index to start picking targets
     ['end', Infinity], // Which index to end picking targets
-    ['order', 'asc'], // What order to sort targets
+    ['order', 'desc'], // What order to sort targets
     ['strategy', 'efficiency'], // What strategy to use when sorting targets
     ['percent', 0.5], // What percent to hack servers to
   ]);
@@ -595,7 +595,6 @@ export async function main(ns) {
           'INDEX',
           'HOSTNAME',
           'MAX MONEY',
-          'GROW RATE',
           'BEST GROW TIME',
           'BEST HACK TIME',
           'BEST WEAKEN TIME',
@@ -606,7 +605,6 @@ export async function main(ns) {
           `${ns.nFormat(index, '00')}`,
           destination.hostname,
           `${formatMoney(destination.moneyMax)}`,
-          `${destination.serverGrowth}`,
           `${ns.tFormat(
             getEstimatedGrowTime(destination, player, HAS_FORMULAS)
           )}`,
@@ -623,7 +621,7 @@ export async function main(ns) {
             getEstimatedEfficiency(destination, player, HAS_FORMULAS)
           )}/s`,
         ]),
-        columnLengths: [6, 25, 10, 10, 30, 30, 30, 30, 15],
+        columnLengths: [6, 25, 10, 30, 30, 30, 30, 15],
       })
   );
   await installAgents(controlledServers);
