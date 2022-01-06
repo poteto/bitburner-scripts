@@ -391,7 +391,7 @@ export async function main(ns) {
    * @param {Server} destination
    * @returns {Promise<number>}
    */
-  const dispatchGrowSimple = async (controlledServers, destination) => {
+  const dispatchGrow = async (controlledServers, destination) => {
     const timeTaken = getGrowTime(destination);
     let growsRemaining = getGrowThreads(destination.hostname);
     let threadsSpawned = 0;
@@ -422,11 +422,7 @@ export async function main(ns) {
    * @param {number} percent
    * @returns {Promise<number>}
    */
-  const dispatchHackSimple = async (
-    controlledServers,
-    destination,
-    percent
-  ) => {
+  const dispatchHack = async (controlledServers, destination, percent) => {
     const timeTaken = getHackTime(destination);
     let hacksRemaining = getHackThreads(destination.hostname, percent);
     let threadsSpawned = 0;
@@ -484,12 +480,12 @@ export async function main(ns) {
 
       if (moneyAvail < moneyMax) {
         report('GROW', destination);
-        await dispatchGrowSimple(controlledServers, destination);
+        await dispatchGrow(controlledServers, destination);
       }
 
       if (moneyAvail === moneyMax) {
         report('HACK', destination);
-        await dispatchHackSimple(controlledServers, destination, percent);
+        await dispatchHack(controlledServers, destination, percent);
       }
 
       await ns.sleep(LOOP_INTERVAL);
