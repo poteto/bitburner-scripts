@@ -479,6 +479,9 @@ export async function main(ns) {
       await ns.sleep(LOOP_INTERVAL);
     }
   };
+  /** @param {Server} destination */
+  const getGrowPercent = (destination) =>
+    ns.formulas.hacking.growPercent(destination, 1, ns.getPlayer());
   /**
    * @param {Server} destination
    * @param {boolean} hasFormulas
@@ -520,9 +523,22 @@ export async function main(ns) {
     }
     return getWeakTime(destination);
   };
-  /** @param {Server} destination */
-  const getGrowPercent = (destination) =>
-    ns.formulas.hacking.growPercent(destination, 1, ns.getPlayer());
+  /**
+   * @param {Server} destination
+   * @param {boolean} hasFormulas
+   */
+  const getEstimatedPrimeTime = (destination, hasFormulas) => {
+    if (hasFormulas) {
+      const player = ns.getPlayer();
+      const mockServer = Object.assign({}, destination);
+      mockServer.hackDifficulty = destination.baseDifficulty;
+      return (
+        ns.formulas.hacking.growTime(mockServer, player) +
+        ns.formulas.hacking.weakenTime(mockServer, player)
+      );
+    }
+    return getGrowTime(destination) + getWeakTime(destination);
+  };
   /**
    * @param {Server} destination
    * @param {boolean} hasFormulas
@@ -555,22 +571,24 @@ export async function main(ns) {
           'HOSTNAME',
           'MAX MONEY',
           'GROW RATE',
-          'EST. HACK TIME',
-          'EST. GROW TIME',
-          'EST. WEAKEN TIME',
-          'EST. EFFICIENCY',
+          'BEST GROW TIME',
+          'BEST HACK TIME',
+          'BEST WEAKEN TIME',
+          'PRIME TIME',
+          'EFFICIENCY',
         ],
         rows: rankedDestinations.map((destination, index) => [
           `${ns.nFormat(index, '00')}`,
           destination.hostname,
           `${formatMoney(destination.moneyMax)}`,
           `${destination.serverGrowth}`,
-          `${ns.tFormat(getEstimatedHackTime(destination, hasFormulas))}`,
           `${ns.tFormat(getEstimatedGrowTime(destination, hasFormulas))}`,
+          `${ns.tFormat(getEstimatedHackTime(destination, hasFormulas))}`,
           `${ns.tFormat(getEstimatedWeakTime(destination, hasFormulas))}`,
+          `${ns.tFormat(getEstimatedPrimeTime(destination, hasFormulas))}`,
           `${formatMoney(getEstimatedEfficiency(destination, hasFormulas))}/s`,
         ]),
-        columnLengths: [6, 25, 10, 10, 30, 30, 30, 15],
+        columnLengths: [6, 25, 10, 10, 30, 30, 30, 30, 15],
       })
   );
   await installAgents(controlledServers);
