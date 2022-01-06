@@ -7,8 +7,8 @@
  *  start: number,
  *  end: number,
  *  order: 'asc' | 'desc',
- *  percent: number
- *  strategy: 'efficiency' | 'maxmoney'
+ *  strategy: 'efficiency' | 'maxmoney',
+ *  force: boolean
  * }} ScriptOptions
  */
 
@@ -28,6 +28,7 @@ const DISPATCH_INTERVAL = 50;
 const LOOP_INTERVAL = 50;
 const DEFAULT_GROW_THREADS = 10_000;
 const DEFAULT_HACK_THREADS = 10_000;
+const HACK_PERCENT = 0.5;
 
 /**
  * @param {number} start
@@ -78,7 +79,7 @@ export async function main(ns) {
     ['end', Infinity], // Which index to end picking targets
     ['order', 'desc'], // What order to sort targets
     ['strategy', 'efficiency'], // What strategy to use when sorting targets
-    ['percent', 0.5], // What percent to hack servers to
+    ['force', false], // Whether to killall when running the script
   ]);
   const log = createLogger(ns);
   const HAS_FORMULAS = ns.fileExists('Formulas.exe');
@@ -116,7 +117,7 @@ export async function main(ns) {
     if (moneyAvail === 0) {
       return 0;
     }
-    const threads = Math.ceil(FLAGS.percent / ns.hackAnalyze(hostname));
+    const threads = Math.ceil(HACK_PERCENT / ns.hackAnalyze(hostname));
     return Math.abs(threads) === Infinity ? DEFAULT_HACK_THREADS : threads;
   };
   /**
@@ -224,9 +225,17 @@ export async function main(ns) {
   const installAgents = async (controlledServers) => {
     for (const server of controlledServers) {
       if (isHome(server.hostname)) {
+        if (FLAGS.force) {
+          for (const script of AGENT_PAYLOAD) {
+            ns.scriptKill(script, ROOT_NODE);
+          }
+        }
         continue;
       }
       for (const script of AGENT_PAYLOAD) {
+        if (FLAGS.force) {
+          ns.scriptKill(script, server.hostname);
+        }
         ns.rm(script, server.hostname);
         await ns.scp(script, ROOT_NODE, server.hostname);
       }
@@ -513,7 +522,7 @@ export async function main(ns) {
   const getEstimatedGrowTime = (destination, player, hasFormulas) => {
     if (hasFormulas) {
       const mockServer = Object.assign({}, destination);
-      mockServer.moneyAvailable = destination.moneyMax * FLAGS.percent;
+      mockServer.moneyAvailable = destination.moneyMax * HACK_PERCENT;
       mockServer.hackDifficulty = destination.minDifficulty;
       return ns.formulas.hacking.growTime(mockServer, player);
     }
