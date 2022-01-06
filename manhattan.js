@@ -136,12 +136,6 @@ export async function main(ns) {
         ns.getServerMinSecurityLevel(hostname)) /
         WEAK_AMOUNT
     );
-  /** @param {number} growsRemaining */
-  const getWeakensForGrow = (growsRemaining) =>
-    Math.ceil(ns.growthAnalyzeSecurity(growsRemaining) / WEAK_AMOUNT);
-  /** @param {number} hacksRemaining */
-  const getWeakensForHack = (hacksRemaining) =>
-    Math.ceil(ns.hackAnalyzeSecurity(hacksRemaining) / WEAK_AMOUNT);
 
   /**
    * @param {Server} destination
@@ -384,113 +378,6 @@ export async function main(ns) {
         if (res != null) {
           weakensRemaining = res.threadsRemaining;
           if (weakensRemaining < 1) {
-            break;
-          }
-        }
-      }
-      await ns.sleep(DISPATCH_INTERVAL);
-    }
-    return longestTimeTaken;
-  };
-  /**
-   * @param {Server[]} controlledServers
-   * @param {Server} destination
-   * @returns {Promise<number>}
-   */
-  const dispatchGrowSmart = async (controlledServers, destination) => {
-    let growsRemaining = getGrowThreads(destination.hostname);
-    let weakensRemaining = getWeakensForGrow(growsRemaining);
-    let longestTimeTaken = -Infinity;
-    while (growsRemaining > 0) {
-      const currentTimeTaken = Math.max(
-        getGrowTime(destination),
-        getWeakTime(destination)
-      );
-      if (currentTimeTaken > longestTimeTaken) {
-        longestTimeTaken = currentTimeTaken;
-      }
-      growsRemaining = getGrowThreads(destination.hostname);
-      weakensRemaining = getWeakensForGrow(growsRemaining);
-      if (growsRemaining === 0) {
-        break;
-      }
-      log(
-        `  ↳ Growing ${destination.hostname} with ${formatThreads(
-          growsRemaining
-        )} grow threads and ${formatThreads(
-          weakensRemaining
-        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
-        'success'
-      );
-      for (const source of controlledServers) {
-        const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
-          threadsNeeded: weakensRemaining,
-          instanceId: '0',
-        });
-        if (weakRes != null) {
-          weakensRemaining = weakRes.threadsRemaining;
-        }
-        const growRes = execScript(source, destination, AGENT_GROW_SCRIPT, {
-          threadsNeeded: growsRemaining,
-          instanceId: '0',
-        });
-        if (growRes != null) {
-          growsRemaining = growRes.threadsRemaining;
-          if (growsRemaining < 1) {
-            break;
-          }
-        }
-      }
-      await ns.sleep(DISPATCH_INTERVAL);
-    }
-    return longestTimeTaken;
-  };
-  /**
-   * @param {Server[]} controlledServers
-   * @param {Server} destination
-   * @param {number} percent
-   * @returns {Promise<number>}
-   */
-  const dispatchHackSmart = async (controlledServers, destination, percent) => {
-    let hacksRemaining = getHackThreads(destination.hostname, percent);
-    let weakensRemaining = getWeakensForHack(hacksRemaining);
-    let longestTimeTaken = -Infinity;
-    while (hacksRemaining > 0) {
-      const currentTimeTaken = Math.max(
-        getHackTime(destination),
-        getWeakTime(destination)
-      );
-      if (currentTimeTaken > longestTimeTaken) {
-        longestTimeTaken = currentTimeTaken;
-      }
-      hacksRemaining = getHackThreads(destination.hostname, percent);
-      weakensRemaining = getWeakensForHack(hacksRemaining);
-      if (hacksRemaining === 0) {
-        break;
-      }
-      log(
-        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
-          hacksRemaining
-        )} hack threads and ${formatThreads(
-          weakensRemaining
-        )} weak threads in ${ns.tFormat(currentTimeTaken)}`,
-        'success'
-      );
-      for (const source of controlledServers) {
-        const weakRes = execScript(source, destination, AGENT_WEAK_SCRIPT, {
-          threadsNeeded: weakensRemaining,
-          instanceId: '0',
-        });
-        if (weakRes != null) {
-          weakensRemaining = weakRes.threadsRemaining;
-        }
-        const hackRes = execScript(source, destination, AGENT_HACK_SCRIPT, {
-          threadsNeeded: hacksRemaining,
-          instanceId: '0',
-        });
-        if (hackRes != null) {
-          hacksRemaining = hackRes.threadsRemaining;
-          if (hacksRemaining < 1) {
             break;
           }
         }
