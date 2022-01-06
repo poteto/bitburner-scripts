@@ -151,28 +151,6 @@ export async function main(ns) {
     Math.ceil(ns.getHackTime(destination.hostname));
 
   /**
-   * @param {string} reportType
-   * @param {Server} destination
-   */
-  const report = (reportType, destination) => {
-    const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
-    const moneyMax = ns.getServerMaxMoney(destination.hostname);
-    const securityCurr = ns.getServerSecurityLevel(destination.hostname);
-    const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
-    log(`--- ${reportType} Report for ${destination.hostname} ---`);
-    log(
-      `  Money   : (${formatPercent(moneyCurr / moneyMax)}) ${formatMoney(
-        moneyCurr
-      )} / ${formatMoney(moneyMax)}`
-    );
-    log(
-      `  Security: (${formatPercent(
-        securityMin / securityCurr
-      )}) ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)}`
-    );
-  };
-
-  /**
    * @param {string} hostname
    * @param {Player} player
    * @returns {boolean}
@@ -380,11 +358,15 @@ export async function main(ns) {
     let threadsSpawned = 0;
     while (weakensRemaining > 0) {
       const currentTimeTaken = getWeakTime(destination);
+      const securityCurr = ns.getServerSecurityLevel(destination.hostname);
+      const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
       log(
-        `  ↳ Weakening ${destination.hostname} with ${formatThreads(
+        ` Weakening ${destination.hostname} with ${formatThreads(
           weakensRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)}`,
-        'success'
+        )} threads in ${ns.tFormat(currentTimeTaken)}. (${formatPercent(
+          securityMin / securityCurr
+        )}) ${format2Decimals(securityCurr)} / ${format2Decimals(securityMin)}`,
+        'info'
       );
       for (const source of controlledServers) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
@@ -410,6 +392,8 @@ export async function main(ns) {
    */
   const dispatchGrow = async (controlledServers, destination) => {
     const timeTaken = getGrowTime(destination);
+    const moneyCurr = ns.getServerMoneyAvailable(destination.hostname);
+    const moneyMax = ns.getServerMaxMoney(destination.hostname);
     let growsRemaining = getGrowThreads(destination.hostname);
     let threadsSpawned = 0;
     for (const source of controlledServers) {
@@ -427,10 +411,12 @@ export async function main(ns) {
     }
     if (threadsSpawned > 0) {
       log(
-        `  ↳ Growing ${destination.hostname} with ${formatThreads(
+        ` Growing ${destination.hostname} with ${formatThreads(
           threadsSpawned
-        )} threads in ${ns.tFormat(timeTaken)}`,
-        'success'
+        )} threads in ${ns.tFormat(timeTaken)}. (${formatPercent(
+          moneyCurr / moneyMax
+        )}) ${moneyCurr} / ${moneyMax}`,
+        'info'
       );
     }
     return threadsSpawned;
@@ -459,7 +445,7 @@ export async function main(ns) {
     }
     if (threadsSpawned > 0) {
       log(
-        `  ↳ Hacking ${destination.hostname} with ${formatThreads(
+        ` Hacking ${destination.hostname} with ${formatThreads(
           threadsSpawned
         )} threads in ${ns.tFormat(timeTaken)}`,
         'success'
@@ -494,21 +480,15 @@ export async function main(ns) {
       );
 
       if (minSecurityLevel < securityLevel) {
-        if ((await dispatchWeak(controlledServers, destination)) > 0) {
-          report('WEAK', destination);
-        }
+        await dispatchWeak(controlledServers, destination);
       }
 
       if (moneyAvail < moneyMax) {
-        if ((await dispatchGrow(controlledServers, destination)) > 0) {
-          report('GROW', destination);
-        }
+        await dispatchGrow(controlledServers, destination);
       }
 
       if (moneyAvail === moneyMax) {
-        if ((await dispatchHack(controlledServers, destination)) > 0) {
-          report('HACK', destination);
-        }
+        await dispatchHack(controlledServers, destination);
       }
 
       await ns.sleep(LOOP_INTERVAL);
