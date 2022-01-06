@@ -515,7 +515,7 @@ export async function main(ns) {
     if (hasFormulas) {
       const player = ns.getPlayer();
       const mockServer = Object.assign({}, destination);
-      mockServer.hackDifficulty = destination.baseDifficulty;
+      mockServer.hackDifficulty = destination.minDifficulty;
       return ns.formulas.hacking.weakenTime(mockServer, player);
     }
     return getWeakTime(destination);
