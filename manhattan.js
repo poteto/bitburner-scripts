@@ -351,23 +351,14 @@ export async function main(ns) {
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
-   * @returns {Promise<number>}
    */
   const dispatchWeak = async (controlledServers, destination) => {
+    const currentTimeTaken = getWeakTime(destination);
+    const securityCurr = ns.getServerSecurityLevel(destination.hostname);
+    const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
     let weakensRemaining = getWeakThreads(destination.hostname);
-    let threadsSpawned = 0;
     while (weakensRemaining > 0) {
-      const currentTimeTaken = getWeakTime(destination);
-      const securityCurr = ns.getServerSecurityLevel(destination.hostname);
-      const securityMin = ns.getServerMinSecurityLevel(destination.hostname);
-      log(
-        `Weak: ${destination.hostname} with ${formatThreads(
-          weakensRemaining
-        )} threads in ${ns.tFormat(currentTimeTaken)} (${format2Decimals(
-          securityCurr
-        )} / ${format2Decimals(securityMin)})`,
-        'info'
-      );
+      let threadsSpawned = 0;
       for (const source of controlledServers) {
         const res = execScript(source, destination, AGENT_WEAK_SCRIPT, {
           threadsNeeded: weakensRemaining,
@@ -381,14 +372,22 @@ export async function main(ns) {
           }
         }
       }
+      if (threadsSpawned > 0) {
+        log(
+          `Weak: ${destination.hostname} with ${formatThreads(
+            threadsSpawned
+          )} threads in ${ns.tFormat(currentTimeTaken)} (${format2Decimals(
+            securityCurr
+          )} / ${format2Decimals(securityMin)})`,
+          'info'
+        );
+      }
       await ns.sleep(DISPATCH_INTERVAL);
     }
-    return threadsSpawned;
   };
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
-   * @returns {Promise<number>}
    */
   const dispatchGrow = async (controlledServers, destination) => {
     const timeTaken = getGrowTime(destination);
@@ -419,12 +418,10 @@ export async function main(ns) {
         'info'
       );
     }
-    return threadsSpawned;
   };
   /**
    * @param {Server[]} controlledServers
    * @param {Server} destination
-   * @returns {Promise<number>}
    */
   const dispatchHack = async (controlledServers, destination) => {
     const timeTaken = getHackTime(destination);
@@ -451,7 +448,6 @@ export async function main(ns) {
         'success'
       );
     }
-    return threadsSpawned;
   };
 
   /**
