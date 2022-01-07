@@ -479,10 +479,6 @@ export async function main(ns) {
         await dispatchWeak(controlledServers, destination);
       }
 
-      if (securityLevel > destination.baseDifficulty) {
-        continue;
-      }
-
       if (moneyAvail < moneyMax) {
         await dispatchGrow(controlledServers, destination);
       }
