@@ -39,6 +39,15 @@ export const GangUpgradeType = {
   Augmentation: 'Augmentation',
 };
 
+export const CITY_NAMES = [
+  'Aevum',
+  'Chongqing',
+  'Sector-12',
+  'New Tokyo',
+  'Ishima',
+  'Volhaven',
+];
+
 export const DIVISION_TYPES = [
   'Software',
   'Food',
@@ -54,13 +63,4 @@ export const DIVISION_TYPES = [
   'RealEstate',
   'Healthcare',
   'Robotics',
-];
-
-export const CITY_NAMES = [
-  'Aevum',
-  'Chongqing',
-  'Sector-12',
-  'New Tokyo',
-  'Ishima',
-  'Volhaven',
 ];
