@@ -38,3 +38,29 @@ export const GangUpgradeType = {
   Rootkit: 'Rootkit',
   Augmentation: 'Augmentation',
 };
+
+export const DIVISION_TYPES = [
+  'Software',
+  'Food',
+  'Tobacco',
+  'Agriculture',
+  'Chemical',
+  'Fishing',
+  'Utilities',
+  'Energy',
+  'Pharmaceutical',
+  'Mining',
+  'Computer',
+  'RealEstate',
+  'Healthcare',
+  'Robotics',
+];
+
+export const CITY_NAMES = [
+  'Aevum',
+  'Chongqing',
+  'Sector-12',
+  'New Tokyo',
+  'Ishima',
+  'Volhaven',
+];
