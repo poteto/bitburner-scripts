@@ -12,6 +12,15 @@ export const AGENT_PAYLOAD = new Set([
 
 export const WEAK_AMOUNT = 0.05;
 
+export const CITY_NAMES = [
+  'Aevum',
+  'Chongqing',
+  'Sector-12',
+  'New Tokyo',
+  'Ishima',
+  'Volhaven',
+];
+
 //hardcoded division types/names
 export const DIVISION_TYPES = [
   'Software',
@@ -28,13 +37,4 @@ export const DIVISION_TYPES = [
   'RealEstate',
   'Healthcare',
   'Robotics',
-];
-
-export const CITY_NAMES = [
-  'Aevum',
-  'Chongqing',
-  'Sector-12',
-  'New Tokyo',
-  'Ishima',
-  'Volhaven',
 ];
