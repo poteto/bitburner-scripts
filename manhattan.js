@@ -479,7 +479,7 @@ export async function main(ns) {
         await dispatchWeak(controlledServers, destination);
       }
 
-      if (securityLevel >= destination.baseDifficulty) {
+      if (securityLevel > destination.baseDifficulty) {
         continue;
       }
 
