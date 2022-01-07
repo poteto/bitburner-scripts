@@ -11,3 +11,30 @@ export const AGENT_PAYLOAD = new Set([
 ]);
 
 export const WEAK_AMOUNT = 0.05;
+
+//hardcoded division types/names
+export const DIVISION_TYPES = [
+  'Software',
+  'Food',
+  'Tobacco',
+  'Agriculture',
+  'Chemical',
+  'Fishing',
+  'Utilities',
+  'Energy',
+  'Pharmaceutical',
+  'Mining',
+  'Computer',
+  'RealEstate',
+  'Healthcare',
+  'Robotics',
+];
+
+export const CITY_NAMES = [
+  'Aevum',
+  'Chongqing',
+  'Sector-12',
+  'New Tokyo',
+  'Ishima',
+  'Volhaven',
+];
