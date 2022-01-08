@@ -47,20 +47,50 @@ export const CITY_NAMES = [
   'Ishima',
   'Volhaven',
 ];
-
-export const DIVISION_TYPES = [
-  'Software',
-  'Food',
-  'Tobacco',
-  'Agriculture',
-  'Chemical',
-  'Fishing',
-  'Utilities',
-  'Energy',
-  'Pharmaceutical',
-  'Mining',
-  'Computer',
-  'RealEstate',
-  'Healthcare',
-  'Robotics',
-];
+/** @enum {string} */
+export const Division = {
+  Agriculture: 'Agriculture',
+  Chemical: 'Chemical',
+  Computer: 'Computer',
+  Energy: 'Energy',
+  Fishing: 'Fishing',
+  Food: 'Food',
+  Healthcare: 'Healthcare',
+  Mining: 'Mining',
+  Pharmaceutical: 'Pharmaceutical',
+  RealEstate: 'RealEstate',
+  Robotics: 'Robotics',
+  Software: 'Software',
+  Tobacco: 'Tobacco',
+  Utilities: 'Utilities',
+};
+/** @enum {string} */
+export const Material = {
+  'AI Cores': 'AI Cores',
+  'Real Estate': 'Real Estate',
+  Chemicals: 'Chemicals',
+  Drugs: 'Drugs',
+  Energy: 'Energy',
+  Food: 'Food',
+  Hardware: 'Hardware',
+  Metal: 'Metal',
+  Plants: 'Plants',
+  Robots: 'Robots',
+  Water: 'Water',
+  Nothing: 'Nothing',
+};
+export const DIVISION_OUTPUTS = new Map();
+DIVISION_OUTPUTS.set(Division.Agriculture, [Material.Plants, Material.Food]);
+DIVISION_OUTPUTS.set(Division.Chemical, [Material.Chemicals]);
+DIVISION_OUTPUTS.set(Division.Computer, [Material.Hardware]);
+DIVISION_OUTPUTS.set(Division.Energy, [Material.Energy]);
+DIVISION_OUTPUTS.set(Division.Fishing, [Material.Food]);
+DIVISION_OUTPUTS.set(Division.Food, [Material.Nothing]);
+DIVISION_OUTPUTS.set(Division.Healthcare, [Material.Nothing]);
+DIVISION_OUTPUTS.set(Division.Mining, [Material.Metal]);
+DIVISION_OUTPUTS.set(Division.Pharmaceutical, [Material.Drugs]);
+DIVISION_OUTPUTS.set(Division.RealEstate, [Material.Nothing]);
+DIVISION_OUTPUTS.set(Division.Robotics, [Material.Robots]);
+DIVISION_OUTPUTS.set(Division.Software, [Material['AI Cores']]);
+DIVISION_OUTPUTS.set(Division.Tobacco, [Material.Nothing]);
+DIVISION_OUTPUTS.set(Division.Utilities, [Material.Water]);
