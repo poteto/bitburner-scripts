@@ -13,8 +13,9 @@ const INTERVAL = 12_000;
 /** @param {NS} ns */
 export async function main(ns) {
   ns.tail();
+  ns.disableLog('disableLog');
   ns.disableLog('sleep');
-  ns.disableLog('gang.ascend');
+  ns.disableLog('gang.ascendMember');
   ns.disableLog('gang.setMemberTask');
 
   const log = createLogger(ns);
