@@ -5,9 +5,9 @@
  * }} ScriptOptions
  */
 
-import createLogger from './create-logger.js';
+import { calculateMean } from './utils';
 
-const TARGET_XP = 5_000;
+const TARGET_BASE = 5_000;
 const INTERVAL = 12_000;
 
 /** @param {NS} ns */
@@ -16,43 +16,39 @@ export async function main(ns) {
   ns.disableLog('disableLog');
   ns.disableLog('sleep');
 
-  const log = createLogger(ns);
   /** @type {ScriptOptions} */
   const FLAGS = ns.flags([['stat', 'com']]);
 
   while (true) {
     for (const memberName of ns.gang.getMemberNames()) {
       const member = ns.gang.getMemberInformation(memberName);
+      let shouldAscend = false;
       switch (FLAGS.stat) {
         case 'cha':
-          if (member.cha_exp > TARGET_XP) {
-            ns.gang.ascendMember(member.name);
+          if (member.cha_exp > TARGET_BASE) {
+            shouldAscend = true;
           }
           if (member.task !== 'Train Charisma') {
             ns.gang.setMemberTask(member.name, 'Train Charisma');
           }
           break;
         case 'com':
-          let sum = 0;
-          for (const stat of [
+          let meanExp = calculateMean([
             member.agi_exp,
             member.def_exp,
             member.dex_exp,
             member.str_exp,
-          ]) {
-            sum += stat;
-          }
-          const mean = sum / 4;
-          if (mean > TARGET_XP) {
-            ns.gang.ascendMember(member.name);
+          ]);
+          if (meanExp > TARGET_BASE) {
+            shouldAscend = true;
           }
           if (member.task !== 'Train Combat') {
             ns.gang.setMemberTask(member.name, 'Train Combat');
           }
           break;
         case 'hck':
-          if (member.hack_exp > TARGET_XP) {
-            ns.gang.ascendMember(member.name);
+          if (member.hack_exp > TARGET_BASE) {
+            shouldAscend = true;
           }
           if (member.task !== 'Train Hacking') {
             ns.gang.setMemberTask(member.name, 'Train Hacking');
@@ -60,6 +56,9 @@ export async function main(ns) {
           break;
         default:
           throw new Error(`Unknown flag value for stat: ${FLAGS.stat}`);
+      }
+      if (shouldAscend) {
+        ns.gang.ascendMember(member.name);
       }
     }
     await ns.sleep(INTERVAL);

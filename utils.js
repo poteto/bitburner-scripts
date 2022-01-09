@@ -6,3 +6,7 @@ export const isHome = (hostname) => hostname === ROOT_NODE;
 export const isFleet = (hostname) => hostname.startsWith(FLEET_PREFIX);
 /** @param {string} hostname */
 export const isOwned = (hostname) => isHome(hostname) || isFleet(hostname);
+
+/** @param {number[]} values */
+export const calculateMean = (values) =>
+  values.reduce((acc, curr) => acc + curr, 0) / values.length;
