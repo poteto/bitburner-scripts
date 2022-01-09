@@ -29,3 +29,12 @@ export const GANG_TASKS = {
   tch: 'Train Charisma',
   tw: 'Territory Warfare',
 };
+
+/** @enum {string} */
+export const GangUpgradeType = {
+  Weapon: 'w',
+  Armor: 'a',
+  Vehicle: 'v',
+  Rootkit: 'r',
+  Augmentation: 'g',
+};
