@@ -11,3 +11,21 @@ export const AGENT_PAYLOAD = new Set([
 ]);
 
 export const WEAK_AMOUNT = 0.05;
+
+export const GANG_TASKS = {
+  u: 'Unassigned',
+  mp: 'Mug People',
+  dd: 'Deal Drugs',
+  sc: 'Strongarm Civilians',
+  rc: 'Run a Con',
+  ar: 'Armed Robbery',
+  tia: 'Traffic Illegal Arms',
+  tb: 'Threaten & Blackmail',
+  ht: 'Human Trafficking',
+  t: 'Terrorism',
+  vj: 'Vigilante Justice',
+  tco: 'Train Combat',
+  th: 'Train Hacking',
+  tch: 'Train Charisma',
+  tw: 'Territory Warfare',
+};
