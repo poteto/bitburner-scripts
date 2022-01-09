@@ -32,9 +32,9 @@ export const GANG_TASKS = {
 
 /** @enum {string} */
 export const GangUpgradeType = {
-  Weapon: 'w',
-  Armor: 'a',
-  Vehicle: 'v',
-  Rootkit: 'r',
-  Augmentation: 'g',
+  Weapon: 'Weapon',
+  Armor: 'Armor',
+  Vehicle: 'Vehicle',
+  Rootkit: 'Rootkit',
+  Augmentation: 'Augmentation',
 };
