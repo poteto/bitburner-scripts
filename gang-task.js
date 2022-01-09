@@ -7,13 +7,13 @@ import { GANG_TASKS } from './constants';
 
 /** @param {NS} ns */
 export async function main(ns) {
-  ns.tail();
-  ns.disableLog('disableLog');
-
   /** @type {ScriptOptions} */
   const FLAGS = ns.flags([['task', 'tw']]);
-
   for (const memberName of ns.gang.getMemberNames()) {
-    ns.gang.setMemberTask(memberName, GANG_TASKS[FLAGS.task]);
+    if (ns.gang.setMemberTask(memberName, GANG_TASKS[FLAGS.task])) {
+      ns.tprint(`Set ${memberName} to ${GANG_TASKS[FLAGS.task]}`);
+    } else {
+      ns.tprint(`Couldn't set ${memberName} to ${GANG_TASKS[FLAGS.task]}`);
+    }
   }
 }
