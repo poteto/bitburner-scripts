@@ -5,7 +5,7 @@
  * @typedef { import('./bitburner.d').Material } Material
  * @typedef { import('./bitburner.d').Product } Product
  */
- import { Division, DIVISION_OUTPUTS } from './constants.js';
+ import { DivisionCode, DIVISION_OUTPUTS } from './constants.js';
 
  import createLogger from './create-logger.js';
 
@@ -35,7 +35,7 @@
        `Couldn't get the corporation, are you sure you bought one?`
      );
    }
-   for (const divisionType of Object.keys(Division)) {
+   for (const divisionType of Object.keys(DivisionCode)) {
      try {
        const division = ns.corporation.getDivision(divisionType);
        const outputs = DIVISION_OUTPUTS.get(division);

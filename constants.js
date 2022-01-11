@@ -39,30 +39,22 @@ export const GangUpgradeType = {
   Augmentation: 'Augmentation',
 };
 
-export const CITY_NAMES = [
-  'Aevum',
-  'Chongqing',
-  'Sector-12',
-  'New Tokyo',
-  'Ishima',
-  'Volhaven',
-];
 /** @enum {string} */
-export const Division = {
-  Agriculture: 'Agriculture',
-  Chemical: 'Chemical',
-  Computer: 'Computer',
-  Energy: 'Energy',
-  Fishing: 'Fishing',
-  Food: 'Food',
-  Healthcare: 'Healthcare',
-  Mining: 'Mining',
-  Pharmaceutical: 'Pharmaceutical',
-  RealEstate: 'RealEstate',
-  Robotics: 'Robotics',
-  Software: 'Software',
-  Tobacco: 'Tobacco',
-  Utilities: 'Utilities',
+export const DivisionCode = {
+  ag: 'Agriculture',
+  ch: 'Chemical',
+  co: 'Computer',
+  en: 'Energy',
+  fi: 'Fishing',
+  fo: 'Food',
+  he: 'Healthcare',
+  mi: 'Mining',
+  ph: 'Pharmaceutical',
+  re: 'RealEstate',
+  ro: 'Robotics',
+  so: 'Software',
+  to: 'Tobacco',
+  ut: 'Utilities',
 };
 /** @enum {string} */
 export const Material = {
@@ -80,17 +72,17 @@ export const Material = {
   Nothing: 'Nothing',
 };
 export const DIVISION_OUTPUTS = new Map();
-DIVISION_OUTPUTS.set(Division.Agriculture, [Material.Plants, Material.Food]);
-DIVISION_OUTPUTS.set(Division.Chemical, [Material.Chemicals]);
-DIVISION_OUTPUTS.set(Division.Computer, [Material.Hardware]);
-DIVISION_OUTPUTS.set(Division.Energy, [Material.Energy]);
-DIVISION_OUTPUTS.set(Division.Fishing, [Material.Food]);
-DIVISION_OUTPUTS.set(Division.Food, [Material.Nothing]);
-DIVISION_OUTPUTS.set(Division.Healthcare, [Material.Nothing]);
-DIVISION_OUTPUTS.set(Division.Mining, [Material.Metal]);
-DIVISION_OUTPUTS.set(Division.Pharmaceutical, [Material.Drugs]);
-DIVISION_OUTPUTS.set(Division.RealEstate, [Material.Nothing]);
-DIVISION_OUTPUTS.set(Division.Robotics, [Material.Robots]);
-DIVISION_OUTPUTS.set(Division.Software, [Material['AI Cores']]);
-DIVISION_OUTPUTS.set(Division.Tobacco, [Material.Nothing]);
-DIVISION_OUTPUTS.set(Division.Utilities, [Material.Water]);
+DIVISION_OUTPUTS.set(DivisionCode.ag, [Material.Plants, Material.Food]);
+DIVISION_OUTPUTS.set(DivisionCode.ch, [Material.Chemicals]);
+DIVISION_OUTPUTS.set(DivisionCode.co, [Material.Hardware]);
+DIVISION_OUTPUTS.set(DivisionCode.en, [Material.Energy]);
+DIVISION_OUTPUTS.set(DivisionCode.fi, [Material.Food]);
+DIVISION_OUTPUTS.set(DivisionCode.fo, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.he, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.mi, [Material.Metal]);
+DIVISION_OUTPUTS.set(DivisionCode.ph, [Material.Drugs]);
+DIVISION_OUTPUTS.set(DivisionCode.re, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.ro, [Material.Robots]);
+DIVISION_OUTPUTS.set(DivisionCode.so, [Material['AI Cores']]);
+DIVISION_OUTPUTS.set(DivisionCode.to, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.ut, [Material.Water]);
