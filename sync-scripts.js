@@ -11,7 +11,6 @@ const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.tail();
   ns.disableLog('disableLog');
   ns.disableLog('wget');
   ns.disableLog('sleep');
@@ -68,6 +67,7 @@ export async function main(ns) {
         )}) completed at: ${new Date().toLocaleString()}`,
         'success'
       );
+      ns.tprint(`Succesfully fetched ${repo.sha.slice(0, 7)}`);
     }
     if (watch === false) {
       return ns.exit();
