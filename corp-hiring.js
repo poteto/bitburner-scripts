@@ -1,7 +1,5 @@
 /**
  * @typedef { import('./bitburner.d').NS } NS
- * @typedef { import('./bitburner.d').Corporation } Corporation
- * @typedef { import('./bitburner.d').Office } Warehouse
  * @typedef {{division: keyof typeof DivisionCode}} ScriptOptions
  */
 
