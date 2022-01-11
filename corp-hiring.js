@@ -8,12 +8,12 @@
 import createLogger from './create-logger.js';
 import { DivisionCode, EmployeeJob } from './constants.js';
 
-const JOBS_TO_HIRE = new Set([
+const JOBS_TO_HIRE = [
   EmployeeJob.ops,
   EmployeeJob.eng,
   EmployeeJob.biz,
   EmployeeJob.mgm,
-]);
+];
 const INTERVAL = 12_000;
 
 /** @param {NS} ns **/
@@ -38,14 +38,14 @@ export async function main(ns) {
       if (office.size === office.employees.length) {
         log(
           `Upgrading office ${cityName} from ${office.size} to ${
-            office.size + JOBS_TO_HIRE.size
+            office.size + JOBS_TO_HIRE.length
           }`,
           'success'
         );
         ns.corporation.upgradeOfficeSize(
           divisionName,
           cityName,
-          JOBS_TO_HIRE.size
+          JOBS_TO_HIRE.length
         );
         ns.corporation.buyCoffee(divisionName, cityName);
       }
@@ -54,18 +54,18 @@ export async function main(ns) {
           ns.corporation.getEmployee(divisionName, cityName, employeeName)
             .pos === EmployeeJob.uns
       );
-      for (const employeeName of unassignedEmployeeNames) {
-        for (const jobName of JOBS_TO_HIRE) {
-          await ns.corporation.assignJob(
-            divisionName,
-            cityName,
-            employeeName,
-            jobName
-          );
-          log(
-            `Assigning ${employeeName} in ${cityName} from unassigned to ${jobName}`
-          );
-        }
+      for (let ii = 0; ii < unassignedEmployeeNames.length; ii++) {
+        const employeeName = unassignedEmployeeNames[ii];
+        const jobName = JOBS_TO_HIRE[ii % JOBS_TO_HIRE.length];
+        await ns.corporation.assignJob(
+          divisionName,
+          cityName,
+          employeeName,
+          jobName
+        );
+        log(
+          `Assigning ${employeeName} in ${cityName} from unassigned to ${jobName}`
+        );
       }
       for (const jobName of JOBS_TO_HIRE) {
         const newEmployee = ns.corporation.hireEmployee(divisionName, cityName);
