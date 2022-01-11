@@ -36,7 +36,7 @@ export async function main(ns) {
       const office = ns.corporation.getOffice(divisionName, cityName);
       if (office.size === office.employees.length) {
         log(
-          `Upgrading office ${office.loc} to ${
+          `Upgrading office ${cityName} from ${office.size} to ${
             office.size + JOBS_TO_HIRE.size
           }`,
           'success'
@@ -44,7 +44,7 @@ export async function main(ns) {
         ns.corporation.upgradeOfficeSize(
           divisionName,
           cityName,
-          office.size + JOBS_TO_HIRE.size
+          JOBS_TO_HIRE.size
         );
         ns.corporation.buyCoffee(divisionName, cityName);
       }
@@ -59,7 +59,10 @@ export async function main(ns) {
           newEmployee.name,
           jobName
         );
-        log(`Hired ${newEmployee.name} with job: ${jobName}`, 'success');
+        log(
+          `Hired ${newEmployee.name} in ${cityName} with job: ${jobName}`,
+          'success'
+        );
       }
     }
     await ns.sleep(INTERVAL);
