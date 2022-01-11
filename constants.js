@@ -50,7 +50,7 @@ export const DivisionCode = {
   he: 'Healthcare',
   mi: 'Mining',
   ph: 'Pharmaceutical',
-  re: 'RealEstate',
+  re: 'Real Estate',
   ro: 'Robotics',
   so: 'Software',
   to: 'Tobacco',
