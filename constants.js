@@ -38,3 +38,62 @@ export const GangUpgradeType = {
   Rootkit: 'Rootkit',
   Augmentation: 'Augmentation',
 };
+
+/** @enum {string} */
+export const DivisionCode = {
+  ag: 'Agriculture',
+  ch: 'Chemical',
+  co: 'Computer',
+  en: 'Energy',
+  fi: 'Fishing',
+  fo: 'Food',
+  he: 'Healthcare',
+  mi: 'Mining',
+  ph: 'Pharmaceutical',
+  re: 'RealEstate',
+  ro: 'Robotics',
+  so: 'Software',
+  to: 'Tobacco',
+  ut: 'Utilities',
+};
+/** @enum {string} */
+export const Material = {
+  'AI Cores': 'AI Cores',
+  'Real Estate': 'Real Estate',
+  Chemicals: 'Chemicals',
+  Drugs: 'Drugs',
+  Energy: 'Energy',
+  Food: 'Food',
+  Hardware: 'Hardware',
+  Metal: 'Metal',
+  Plants: 'Plants',
+  Robots: 'Robots',
+  Water: 'Water',
+  Nothing: 'Nothing',
+};
+/** @enum {string} */
+export const EmployeeJob = {
+  rnd: 'Research & Development',
+  biz: 'Business',
+  eng: 'Engineer',
+  mgm: 'Management',
+  ops: 'Operations',
+  trn: 'Training',
+  uns: 'Unassigned',
+};
+
+export const DIVISION_OUTPUTS = new Map();
+DIVISION_OUTPUTS.set(DivisionCode.ag, [Material.Plants, Material.Food]);
+DIVISION_OUTPUTS.set(DivisionCode.ch, [Material.Chemicals]);
+DIVISION_OUTPUTS.set(DivisionCode.co, [Material.Hardware]);
+DIVISION_OUTPUTS.set(DivisionCode.en, [Material.Energy]);
+DIVISION_OUTPUTS.set(DivisionCode.fi, [Material.Food]);
+DIVISION_OUTPUTS.set(DivisionCode.fo, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.he, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.mi, [Material.Metal]);
+DIVISION_OUTPUTS.set(DivisionCode.ph, [Material.Drugs]);
+DIVISION_OUTPUTS.set(DivisionCode.re, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.ro, [Material.Robots]);
+DIVISION_OUTPUTS.set(DivisionCode.so, [Material['AI Cores']]);
+DIVISION_OUTPUTS.set(DivisionCode.to, [Material.Nothing]);
+DIVISION_OUTPUTS.set(DivisionCode.ut, [Material.Water]);
