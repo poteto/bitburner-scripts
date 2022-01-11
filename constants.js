@@ -71,6 +71,17 @@ export const Material = {
   Water: 'Water',
   Nothing: 'Nothing',
 };
+/** @enum {string} */
+export const EmployeeJob = {
+  rnd: 'Research & Development',
+  biz: 'Business',
+  eng: 'Engineer',
+  mgm: 'Management',
+  ops: 'Operations',
+  trn: 'Training',
+  uns: 'Unassigned',
+};
+
 export const DIVISION_OUTPUTS = new Map();
 DIVISION_OUTPUTS.set(DivisionCode.ag, [Material.Plants, Material.Food]);
 DIVISION_OUTPUTS.set(DivisionCode.ch, [Material.Chemicals]);

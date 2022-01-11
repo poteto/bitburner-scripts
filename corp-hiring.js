@@ -6,9 +6,14 @@
  */
 
 import createLogger from './create-logger.js';
-import { DivisionCode } from './constants.js';
+import { DivisionCode, EmployeeJob } from './constants.js';
 
-const JOBS_TO_HIRE = new Set(['Operations', 'Engineer', 'Business', 'Manager']);
+const JOBS_TO_HIRE = new Set([
+  EmployeeJob.ops,
+  EmployeeJob.eng,
+  EmployeeJob.biz,
+  EmployeeJob.mgm,
+]);
 const INTERVAL = 12_000;
 
 /** @param {NS} ns **/
@@ -30,6 +35,12 @@ export async function main(ns) {
     for (const cityName of ns.corporation.getDivision(divisionName).cities) {
       const office = ns.corporation.getOffice(divisionName, cityName);
       if (office.size === office.employees.length) {
+        log(
+          `Upgrading office ${office.loc} to ${
+            office.size + JOBS_TO_HIRE.size
+          }`,
+          'success'
+        );
         ns.corporation.upgradeOfficeSize(
           divisionName,
           cityName,
@@ -48,6 +59,7 @@ export async function main(ns) {
           newEmployee.name,
           jobName
         );
+        log(`Hired ${newEmployee.name} with job: ${jobName}`, 'success');
       }
     }
     await ns.sleep(INTERVAL);
