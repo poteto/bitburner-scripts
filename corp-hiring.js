@@ -47,7 +47,6 @@ export async function main(ns) {
           cityName,
           JOBS_TO_HIRE.length
         );
-        ns.corporation.buyCoffee(divisionName, cityName);
       }
       const unassignedEmployeeNames = office.employees.filter(
         (employeeName) =>
@@ -72,6 +71,8 @@ export async function main(ns) {
         if (newEmployee == null) {
           break;
         }
+        await ns.corporation.buyCoffee(divisionName, cityName);
+        await ns.corporation.throwParty(divisionName, cityName, 500_000);
         await ns.corporation.assignJob(
           divisionName,
           cityName,
