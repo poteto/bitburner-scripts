@@ -70,7 +70,7 @@ export async function main(ns) {
       for (const jobName of JOBS_TO_HIRE) {
         const newEmployee = ns.corporation.hireEmployee(divisionName, cityName);
         if (newEmployee == null) {
-          continue;
+          break;
         }
         await ns.corporation.assignJob(
           divisionName,
