@@ -49,6 +49,24 @@ export async function main(ns) {
         );
         ns.corporation.buyCoffee(divisionName, cityName);
       }
+      const unassignedEmployeeNames = office.employees.filter(
+        (employeeName) =>
+          ns.corporation.getEmployee(divisionName, cityName, employeeName)
+            .pos === EmployeeJob.uns
+      );
+      for (const employeeName of unassignedEmployeeNames) {
+        for (const jobName of JOBS_TO_HIRE) {
+          await ns.corporation.assignJob(
+            divisionName,
+            cityName,
+            employeeName,
+            jobName
+          );
+          log(
+            `Assigning ${employeeName} in ${cityName} from unassigned to ${jobName}`
+          );
+        }
+      }
       for (const jobName of JOBS_TO_HIRE) {
         const newEmployee = ns.corporation.hireEmployee(divisionName, cityName);
         if (newEmployee == null) {
