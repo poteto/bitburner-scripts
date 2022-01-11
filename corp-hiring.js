@@ -14,7 +14,7 @@ const JOBS_TO_HIRE = [
   EmployeeJob.biz,
   EmployeeJob.mgm,
 ];
-const INTERVAL = 12_000;
+const INTERVAL = 3_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -40,7 +40,6 @@ export async function main(ns) {
           `Upgrading office ${cityName} from ${office.size} to ${
             office.size + JOBS_TO_HIRE.length
           }`,
-          'success'
         );
         ns.corporation.upgradeOfficeSize(
           divisionName,
