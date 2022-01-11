@@ -20,6 +20,7 @@ const INTERVAL = 12_000;
 export async function main(ns) {
   ns.tail();
   ns.disableLog('disableLog');
+  ns.disableLog('sleep');
 
   const log = createLogger(ns);
 
