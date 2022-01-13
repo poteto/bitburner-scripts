@@ -113,6 +113,7 @@ export async function main(ns) {
           if (ns.hacknet.upgradeCache(cheapest.index, CACHE_INCREMENT)) {
             log(`Successfully upgraded hacknet-node-${cheapest.index} cache`);
           }
+          break;
         default:
           throw new Error(
             `Unknown upgrade ${cheapest.name} for hacknet-node-${cheapest.index}`
