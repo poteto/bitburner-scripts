@@ -35,7 +35,12 @@ export async function main(ns) {
       'warning'
     );
 
-  while (true) {
+  outer: while (true) {
+    // For now just get money if we're close to cap
+    if (ns.hacknet.numHashes() + 4 >= ns.hacknet.hashCapacity()) {
+      ns.hacknet.spendHashes('Sell for Money');
+    }
+
     const numNodes = ns.hacknet.numNodes();
     /** @type {{cost: number, name: string | null, index: number | null}} */
     let cheapest = {
@@ -68,13 +73,13 @@ export async function main(ns) {
     }
 
     if (cheapest.name != null && cheapest.index != null) {
+      while (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
+        await insufficientFunds(cheapest.cost);
+        continue outer;
+      }
       log(
         `Found cheapest upgrade: hacknet-node-${cheapest.index}, ${cheapest.name}`
       );
-      while (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
-        await insufficientFunds(cheapest.cost);
-        await ns.sleep(INTERVAL);
-      }
       switch (cheapest.name) {
         case 'node':
           const nextNodeIndex = ns.hacknet.purchaseNode();
@@ -119,11 +124,6 @@ export async function main(ns) {
             `Unknown upgrade ${cheapest.name} for hacknet-node-${cheapest.index}`
           );
       }
-    }
-
-    // For now just get money if we're close to cap
-    if (ns.hacknet.numHashes() + 4 >= ns.hacknet.hashCapacity()) {
-      ns.hacknet.spendHashes('Sell for Money');
     }
   }
 }
