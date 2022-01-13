@@ -26,7 +26,7 @@ export async function main(ns) {
 
   const log = createLogger(ns);
   /** @param {number} cost */
-  const insufficientFunds = async (cost) =>
+  const insufficientFunds = (cost) =>
     log(
       `Need: ${ns.nFormat(cost, '($0.00a)')}, have: ${ns.nFormat(
         ns.getServerMoneyAvailable(ROOT_NODE),
@@ -74,7 +74,8 @@ export async function main(ns) {
 
     if (cheapest.name != null && cheapest.index != null) {
       if (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
-        await insufficientFunds(cheapest.cost);
+        insufficientFunds(cheapest.cost);
+        await ns.sleep(INTERVAL);
         continue outer;
       }
       log(
