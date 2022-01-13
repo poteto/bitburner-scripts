@@ -73,7 +73,7 @@ export async function main(ns) {
     }
 
     if (cheapest.name != null && cheapest.index != null) {
-      while (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
+      if (ns.getServerMoneyAvailable(ROOT_NODE) < cheapest.cost) {
         await insufficientFunds(cheapest.cost);
         continue outer;
       }
