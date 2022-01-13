@@ -119,5 +119,10 @@ export async function main(ns) {
           );
       }
     }
+
+    // For now just get money if we're close to cap
+    if (ns.hacknet.numHashes() + 4 >= ns.hacknet.hashCapacity()) {
+      ns.hacknet.spendHashes('Sell for Money');
+    }
   }
 }
