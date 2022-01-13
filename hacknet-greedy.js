@@ -14,6 +14,7 @@ import createLogger from './create-logger.js';
 const LEVEL_INCREMENT = 20;
 const RAM_INCREMENT = 1;
 const CORE_INCREMENT = 1;
+const CACHE_INCREMENT = 1;
 const INTERVAL = 1_000;
 
 /** @param {NS} ns **/
@@ -54,6 +55,7 @@ export async function main(ns) {
         level: ns.hacknet.getLevelUpgradeCost(index, LEVEL_INCREMENT),
         ram: ns.hacknet.getRamUpgradeCost(index, RAM_INCREMENT),
         core: ns.hacknet.getCoreUpgradeCost(index, CORE_INCREMENT),
+        cache: ns.hacknet.getCacheUpgradeCost(index, CACHE_INCREMENT),
       };
 
       for (const [name, cost] of Object.entries(costs)) {
@@ -107,6 +109,10 @@ export async function main(ns) {
             );
           }
           break;
+        case 'cache':
+          if (ns.hacknet.upgradeCache(cheapest.index, CACHE_INCREMENT)) {
+            log(`Successfully upgraded hacknet-node-${cheapest.index} cache`);
+          }
         default:
           throw new Error(
             `Unknown upgrade ${cheapest.name} for hacknet-node-${cheapest.index}`
