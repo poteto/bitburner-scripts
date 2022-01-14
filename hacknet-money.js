@@ -4,7 +4,6 @@ const INTERVAL = 50;
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.tail();
   ns.disableLog('disableLog');
   ns.disableLog('sleep');
 
