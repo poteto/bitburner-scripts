@@ -1,6 +1,6 @@
 /** @typedef { import('./bitburner.d').NS } NS */
 
-const INTERVAL = 1_000;
+const INTERVAL = 50;
 
 /** @param {NS} ns **/
 export async function main(ns) {
