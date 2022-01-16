@@ -117,7 +117,10 @@ export async function main(ns) {
           break;
         case 'cache':
           if (ns.hacknet.upgradeCache(cheapest.index, CACHE_INCREMENT)) {
-            log(`Successfully upgraded hacknet-node-${cheapest.index} cache`);
+            log(
+              `Successfully upgraded hacknet-node-${cheapest.index} cache`,
+              'success'
+            );
           }
           break;
         default:
