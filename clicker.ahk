@@ -42,6 +42,16 @@ Loop,
 CoordMode, mouse, Screen
 Loop,
 {
+  Send {Click, 366, 350} ; Bond Forgery
+  Sleep, 200
+  Send {Click, 366, 350}
+  Sleep, 300200
+}
+
+^6::
+CoordMode, mouse, Screen
+Loop,
+{
   Send {Click, 366, 425} ; Homicide
   Sleep, 200
   Send {Click, 366, 425}
