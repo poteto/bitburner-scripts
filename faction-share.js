@@ -46,6 +46,22 @@ export async function main(ns) {
       (hostname) => ns.getServer(hostname)
     );
 
+  /**
+   * @param {Server} source
+   * @param {{script: string}} options
+   */
+  const execScript = (source, { script }) => {
+    const scriptCost = ns.getScriptRam(script);
+    const availRam =
+      ns.getServerMaxRam(source.hostname) -
+      ns.getServerUsedRam(source.hostname);
+    const threadsAvail = Math.floor(availRam / scriptCost);
+    if (threadsAvail === 0) {
+      return null;
+    }
+    return ns.exec(script, source.hostname, threadsAvail);
+  };
+
   const player = ns.getPlayer();
   const traverse = createTraversal(ns, player);
   const nukedHostnames = traverse(ROOT_NODE);
@@ -55,6 +71,6 @@ export async function main(ns) {
     payload: AGENT_PAYLOAD,
   });
   for (const controlledServer of controlledServers) {
-    ns.exec(AGENT_SHARE_SCRIPT, controlledServer.hostname);
+    execScript(controlledServer, { script: AGENT_SHARE_SCRIPT });
   }
 }
