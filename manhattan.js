@@ -16,20 +16,23 @@ import {
   AGENT_GROW_SCRIPT,
   AGENT_HACK_SCRIPT,
   AGENT_WEAK_SCRIPT,
-  AGENT_PAYLOAD,
   ROOT_NODE,
   WEAK_AMOUNT,
 } from './constants.js';
 import createLogger from './create-logger.js';
 import formatTable from './format-table.js';
-import { isHome, isOwned } from './utils.js';
+import { createTraversal, isHome, installAgents } from './utils.js';
 
 const DISPATCH_INTERVAL = 50;
 const LOOP_INTERVAL = 50;
 const DEFAULT_GROW_THREADS = 10_000;
 const DEFAULT_HACK_THREADS = 10_000;
 const HACK_PERCENT = 0.5;
-
+const AGENT_PAYLOAD = new Set([
+  AGENT_GROW_SCRIPT,
+  AGENT_HACK_SCRIPT,
+  AGENT_WEAK_SCRIPT,
+]);
 /**
  * @param {number} start
  * @param {number} end
@@ -150,98 +153,6 @@ export async function main(ns) {
   const getHackTime = (destination) =>
     Math.ceil(ns.getHackTime(destination.hostname));
 
-  /**
-   * @param {string} hostname
-   * @param {Player} player
-   * @returns {boolean}
-   */
-  const tryNuke = (hostname, player) => {
-    if (isOwned(hostname)) {
-      return false;
-    }
-
-    const server = ns.getServer(hostname);
-
-    if (player.hacking < server.requiredHackingSkill) {
-      return false;
-    }
-
-    if (server.sshPortOpen === false && ns.fileExists('BruteSSH.exe')) {
-      ns.brutessh(server.hostname);
-    }
-
-    if (server.ftpPortOpen === false && ns.fileExists('FTPCrack.exe')) {
-      ns.ftpcrack(server.hostname);
-    }
-
-    if (server.smtpPortOpen === false && ns.fileExists('relaySMTP.exe')) {
-      ns.relaysmtp(server.hostname);
-    }
-
-    if (server.httpPortOpen === false && ns.fileExists('HTTPWorm.exe')) {
-      ns.httpworm(server.hostname);
-    }
-
-    if (server.sqlPortOpen === false && ns.fileExists('SQLInject.exe')) {
-      ns.sqlinject(server.hostname);
-    }
-
-    if (
-      ns.getServer(server.hostname).openPortCount >=
-      ns.getServerNumPortsRequired(server.hostname)
-    ) {
-      ns.nuke(server.hostname);
-    }
-
-    if (server.backdoorInstalled === false) {
-      // ns.installBackdoor(server.hostname);
-    }
-
-    return ns.hasRootAccess(server.hostname);
-  };
-  /** @param {Server[]} controlledServers */
-  const installAgents = async (controlledServers) => {
-    for (const server of controlledServers) {
-      if (isHome(server.hostname)) {
-        if (FLAGS.force) {
-          for (const script of AGENT_PAYLOAD) {
-            ns.scriptKill(script, ROOT_NODE);
-          }
-        }
-        continue;
-      }
-      for (const script of AGENT_PAYLOAD) {
-        if (FLAGS.force) {
-          ns.scriptKill(script, server.hostname);
-        }
-        ns.rm(script, server.hostname);
-        await ns.scp(script, ROOT_NODE, server.hostname);
-      }
-    }
-  };
-  /** @param {Player} player */
-  const createTraversal = (player) => {
-    const visited = new Set();
-    const nukedHostnames = new Set();
-    /**
-     * @param {string} hostname
-     * @param {number} depth
-     * @returns {Set<string>}
-     */
-    return function traverse(hostname, depth = 0) {
-      for (const nextHostname of ns.scan(hostname)) {
-        if (isOwned(nextHostname) || visited.has(nextHostname)) {
-          continue;
-        }
-        visited.add(nextHostname);
-        if (tryNuke(nextHostname, player) === true) {
-          nukedHostnames.add(nextHostname);
-        }
-        traverse(nextHostname, depth + 1);
-      }
-      return nukedHostnames;
-    };
-  };
   /**
    * @param {Server} destination
    * @param {Player} player
@@ -569,7 +480,7 @@ export async function main(ns) {
   };
 
   const player = ns.getPlayer();
-  const traverse = createTraversal(player);
+  const traverse = createTraversal(ns, player);
   const nukedHostnames = traverse(ROOT_NODE);
   const controlledServers = getControlledServers(nukedHostnames);
   const rankedDestinations = getRankedDestinations(nukedHostnames, player);
@@ -609,6 +520,9 @@ export async function main(ns) {
         columnLengths: [6, 25, 10, 30, 30, 30, 30, 15],
       })
   );
-  await installAgents(controlledServers);
+  await installAgents(ns, controlledServers, {
+    force: FLAGS.force,
+    payload: AGENT_PAYLOAD,
+  });
   await orchestrateControlledServers(controlledServers, rankedDestinations);
 }
